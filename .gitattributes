@@ -1,0 +1,6 @@
+# shell scripts must keep LF endings, they run on the Linux cluster
+*.sh text eol=lf
+
+# data files are hashed byte-for-byte (manifest input_sha256), so they must
+# keep LF endings regardless of core.autocrlf on the checkout machine
+data/** text eol=lf

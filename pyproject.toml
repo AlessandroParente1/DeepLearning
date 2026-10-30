@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# src layout: the importable package is src/protgen, so `import protgen` always resolves to the
+# installed package and never to a stray directory in the current working directory. setuptools
+# discovers it automatically from the src/ directory, so no package list is needed here.
+
+[project]
+name = "02456_autoregressive_project"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "biotite>=1.7.1",
+    "hydra-core>=1.3.8",
+    "ipykernel>=7.3.0",   # not imported anywhere: it is the kernel that runs notebooks/
+    "matplotlib>=3.11.2",
+    "pandas>=3.0.6",
+    "torch>=2.14.0",
+]
+
+[dependency-groups]
+# Evaluation of generated sequences (ESMFold, figures). Install with: uv sync --group eval
+eval = [
+    "accelerate>=1.0.0",
+    "matplotlib>=3.9.0",
+    "pandas>=2.2.0",
+    "py3dmol>=2.4.0",
+    "transformers>=4.50.0",
+]
+
+# On Linux, take torch from PyTorch's CUDA 12.6 index instead of PyPI. The PyPI wheels are built
+# with CUDA 13, which has no kernels for the cluster's V100s (Volta, sm_70); the CUDA 12.6 build
+# covers V100, A100, A10/A40 and L40s. torch 2.14 is the last release with a CUDA 12.6 build.
+# A checkout inside a OneDrive folder cannot take uv's default hardlinks into .venv - the sync
+# fails with "the cloud operation cannot be performed on a file with incompatible hard links".
+# Copying instead costs a little disk on the first sync and works wherever the repository sits.
+[tool.uv]
+# torch requires triton on Linux for torch.compile, which nothing here calls - 1.2 GB of a venv
+# that is 11 GB on the cluster, never once imported. An override with a marker that can never be
+# true is how uv drops a transitive dependency. Should anything start compiling models, delete
+# this line: without triton, torch.compile fails at the point of use rather than at import.
+override-dependencies = ["triton ; python_version < '3.0'"]
+
+link-mode = "copy"
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
