@@ -4,9 +4,9 @@ from torch.utils.data import Dataset, DataLoader
 
 # Constants for the dataset and model
 FAMILIES = ("AcyP", "HPr", "HU")
-AA = "ACDEFGHIKLMNPQRSTVWY"
-special_tokens = ["<PAD>", "<BOS>", "<EOS>"]
-total_tokens = list(special_tokens) + list(AA)
+AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
+SPECIAL_TOKENS = ["<PAD>", "<BOS>", "<EOS>"]
+ALL_TOKENS = list(SPECIAL_TOKENS) + list(AMINO_ACIDS)
 IGNORE_INDEX = -1  # what F.cross_entropy(ignore_index=...) must be given for the generative task
 
 class ProteinDataset(Dataset):
@@ -34,7 +34,7 @@ class ProteinDataset(Dataset):
 
     def __init__(self, path_to_data):
         # Set token and family mappings
-        self.vocab = dict(zip(total_tokens, range(len(total_tokens))))
+        self.vocab = dict(zip(ALL_TOKENS, range(len(ALL_TOKENS))))
         self.fam_to_idx = dict(zip(FAMILIES, range(len(FAMILIES))))
 
         # Load raw CSV files
@@ -76,7 +76,7 @@ class ProteinDataset(Dataset):
         shifted target are dropped, so decoding either x or x_shifted gives the protein back.
         """
         idx_to_vocab = {index: token for token, index in self.vocab.items()}
-        residues = set(AA)
+        residues = set(AMINO_ACIDS)
         return "".join(idx_to_vocab[int(token)] for token in tokens
                        if idx_to_vocab.get(int(token)) in residues)
 

@@ -1,11 +1,11 @@
 from .make_data import (
-    AA,
+    AMINO_ACIDS,
     FAMILIES,
     IGNORE_INDEX,
     ProteinDataset,
-    special_tokens,
-    total_tokens,
+    SPECIAL_TOKENS,
+    ALL_TOKENS,
 )
 
-__all__ = ["AA", "FAMILIES", "IGNORE_INDEX", "ProteinDataset", "special_tokens",
-           "total_tokens"]
+__all__ = ["AMINO_ACIDS", "FAMILIES", "IGNORE_INDEX", "ProteinDataset", "SPECIAL_TOKENS",
+           "ALL_TOKENS"]
