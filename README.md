@@ -131,9 +131,6 @@ for x, x_shifted, y, length in train_loader:
 | `y` | scalar long | the family, as a class index |
 | `length` | int | the number of residues, without `<BOS>`/`<EOS>`/`<PAD>` |
 
-So the generative task is `cross_entropy(logits, x_shifted, ignore_index=IGNORE_INDEX)` - the `-1`
-is exactly what makes the padding free of loss - and the classification task is
-`cross_entropy(class_logits, y)`.
 
 Whole-split tensors are the same data, if a small model is easier to write against them than
 against a loader:
