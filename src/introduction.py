@@ -12,7 +12,7 @@ X_train = train_data.tokens
 y_train_labels = train_data.labels          # classification task
 y_train_shifted = train_data.tokens_shifted # generative task
 
-print(f"# Train data: \n Tokens shape: {X_train.shape}\n Labels (shape): {y_train_labels.shape} \n Shifted shape: {y_train_shifted.shape}")
+print(f"# Train data: \n Tokens shape: {X_train.shape}\n Labels (shape): {y_train_labels.shape} \n Shifted shape: {y_train_shifted.shape}") # type: ignore
 
 
 # Inddexing
