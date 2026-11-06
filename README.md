@@ -4,15 +4,15 @@ A 02456 Deep Learning project. You build autoregressive sequence models - an MLP
 context, an RNN / LSTM / GRU, a transformer - on one frozen train/validation/test split of three
 protein families, and then measure what they generate.
 
-What the repository gives you is the two ends of that work:
+The repository mainly provides:
 
 - **the data and a dataset class** (`data/`, `src/protgen/data/`), so every model is fitted and
   compared on the same split and the same tokenisation;
 - **an evaluation pipeline** (`eval/`, `src/protgen/metrics/`), so "the samples look like
   proteins" becomes a number you can put in a table.
 
-**The middle is yours**: the models, the training loop and the sampling code. `src/protgen/models/`
-and `config/` are empty placeholders waiting for them.
+**Remaining**: the models, the training loop and the sampling code. `src/protgen/models/`
+and `config/` are empty placeholders to be written.
 
 ## Get the code
 
@@ -62,48 +62,14 @@ use that environment without activating it:
 uv run python eval/eval.py --samples results/sequences/mock_data.csv
 ```
 
-If that prints a small table, the environment works. (The project sets `link-mode = "copy"`,
-because a checkout inside a OneDrive folder cannot take uv's default hardlinks. On the cluster
-`hpc/env.sh` asks for hardlinks again, where they work and where the environment is large enough
-for the difference to matter: about 1 GB on Linux without a GPU, 9.5 GB with the CUDA build of
-torch.)
+If that prints a small table and a results/, the environment works.
 
-`uv sync` also installs the `protgen` package itself, in editable mode. `import protgen` then works
-from anywhere - a notebook in `notebooks/`, a script on the cluster, the project root - with no
-`sys.path` lines. The package lives in `src/protgen/`, the src layout, so `import protgen` can only
-ever resolve to the installed package and never to a directory that happens to sit in the current
-working directory.
-
-**The `eval` group is separate.** ESMFold and its dependencies are only needed for folding, so they
-are an optional dependency group:
+**The `eval` group is separate.** To run ESMFold with `eval/eval.py --fold` the eval group is needed:
 
 ```bash
 uv sync --group eval        # install them
-uv run --group eval ...     # install them if missing, then run
+uv run --group eval python eval/eval.py --results/sequences/your_data.csv --fold     
 ```
-
-Nothing records that you installed the group. `--group` is a flag on the one command; neither
-`pyproject.toml` nor `uv.lock` remembers it, and the only state is what is sitting in `.venv`.
-What that means in practice comes down to one asymmetry in uv:
-
-| Command | What happens to the eval packages |
-|---|---|
-| `uv sync --group eval` | installed |
-| `uv sync` | **removed** - a plain sync is *exact*, so it prunes everything outside the default groups |
-| `uv run --group eval ...` | installed if missing, then the command runs |
-| `uv run ...` | left alone - `uv run` syncs *inexactly*, so it never prunes |
-
-The last row is worth knowing, because it looks like a contradiction the first time you meet it:
-once `uv sync --group eval` has run, `uv run python eval/eval.py --fold` folds quite happily
-*without* `--group eval`. The import works because the packages are still in `.venv`, not because
-the command asked for them - and a plain `uv sync` later on takes them away again. Passing
-`--group eval` is what makes a command independent of that history, so the scripts use it for
-everything that folds or reads structures, and plain `uv run` for the sequence metrics, which need
-nothing from the group. `uv sync --group eval` is the one to re-run after pulling.
-
-Only `transformers`, `accelerate` and `py3dmol` are exclusive to the group. `matplotlib` and
-`pandas` are listed in the main dependencies as well, so those two never go away.
-
 ## The data
 
 Three protein families, balanced, in `data/train.csv`, `data/val.csv` and `data/test.csv` - one row
@@ -116,14 +82,9 @@ test split is a genuine held-out set; read it once, at the end, and never for mo
 | `val` | 2,001 | 667 | 68 / 94.6 / 126 |
 | `test` | 2,001 | 667 | 68 / 94.2 / 127 |
 
-The three families are matched in length, so **length carries no information about the family** -
-useful to know when a classifier of yours does suspiciously well.
-
 ### `ProteinDataset`
 
-`protgen.data.ProteinDataset` is an ordinary `torch.utils.data.Dataset` over one of those CSVs. It
-tokenises every sequence once, in `__init__`, and serves both of the project's targets from the
-same `x`:
+Use the provided data and data loader by:
 
 ```python
 from torch.utils.data import DataLoader
@@ -149,28 +110,26 @@ for x, x_shifted, y, length in train_loader:
 | `length` | int | the number of residues, without `<BOS>`/`<EOS>`/`<PAD>` |
 
 
-Whole-split tensors are the same data, if a small model is easier to write against them than
-against a loader:
+You can also extract whole tensors for the split:
 
 ```python
-X = train_data.tokens            # (16020, 129) long
+X = train_data.tokens              # (16020, 129) long
 Y_gen = train_data.tokens_shifted  # (16020, 129) long, -1 at the padding
 Y_fam = train_data.labels          # (16020,) long
 ```
 
-**The vocabulary** is fixed in `protgen.data`, not inferred from the data, so a token id means the
-same residue in every run and checkpoint: `<PAD>` 0, `<BOS>` 1, `<EOS>` 2, then the 20 standard
-residues in alphabetical order, 3 to 22. `train_data.vocab` is that mapping, `vocab_size` is 23,
-and `encode` / `decode` go between a residue string and a token tensor (`decode` drops the special
-tokens, so `decode(x)` and `decode(x_shifted)` both give the protein back).
+**The vocabulary** is fixed and can be view at train_data.vocab:
+<Insert dictionary printed by data.vocab>
+
+| token | `<PAD>` | `<BOS>` | `<EOS>` | A | C | D | E | F | G | H | I | K | L | M | N | P | Q | R | S | T | V | W | Y |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **id** | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 |
 
 **The family ids** are fixed the same way, in `protgen.data.FAMILIES`:
 
-| `y` | family |
-|---|---|
-| 0 | AcyP |
-| 1 | HPr |
-| 2 | HU |
+| `y` | 0 | 1 | 2 |
+|---|---|---|---|
+| **family** | AcyP | HPr | HU |
 
 `train_data.fam_to_idx` is that mapping. `notebooks/introduction.ipynb` runs through all of the
 above in a few cells.
@@ -184,22 +143,11 @@ above in a few cells.
 | the project root | your `train.py` / `generate.py`, or notebooks, whichever you prefer. |
 | `hpc/train.sh` | the queue, walltime and memory for the training job, and the command that runs it. Fill in the command at the bottom. |
 
-The one interface worth keeping to is the output of your sampling code: **a CSV with a `sequence`
-column**, written to `results/sequences/<name>.csv`. That is all `eval/` asks for, which is why
-nothing in `eval/` has to know how your model works.
+Note that the `eval/` scripts expect your generated sequences to stored as a CSV files at `results/sequences/<name>.csv` like the `mock_data.csv`.
 
 ## Evaluating what you generate
 
-`eval/` scores a set of sequences on three questions - is it a protein, is it new, is it the same
-one again - and, on a GPU, folds it with ESMFold and reports the confidence. Two control sets, real
-test proteins and the same proteins with their residues shuffled, fix the scale, because none of
-those numbers means much read on its own.
-
-The smoke test under [Install](#install) is already that pipeline in full, run on the mock sample
-set that ships with the repo. Point it at your own CSV instead, add `--fold` on a GPU node, and
-read what comes out against the controls. **[`eval/README.md`](eval/README.md)** is the one place
-that describes the scripts, their output and what each metric means.
-
+See **[`eval/README.md`](eval/README.md)**.
 ## On the cluster (DTU HPC)
 If you are new to the DTU HPC, look at this guide:
 https://docs.google.com/document/d/1bRtX87ZD7faG1b5CayN5LKUPcn75xmrWt6jFcuwoGMU/edit?tab=t.0
@@ -215,22 +163,7 @@ directory yourself. Each of you has your own directory there, and `$BLACKHOLE` p
 echo $BLACKHOLE      # /dtu/blackhole/<your-personal-path>
 ```
 
-**The clone goes in there, not in your home directory.** That is the one decision you make
-yourself - no script can move the repository for you. Everything after it is automatic: every
-script in `hpc/` sources `hpc/env.sh`, which points the ESMFold weights and uv's package cache at
-the same `$BLACKHOLE` directory. So you never set `HF_HOME` or `UV_CACHE_DIR` yourself, and
-nothing large ever lands in the home quota.
-
-`$BLACKHOLE` is a *directory*, not a machine. It is mounted on the login nodes and on every
-compute node, so one checkout is what you edit on the login node and what your jobs read when
-they run. "On the login node" further down therefore means the machine you ssh into - you stay
-inside this one clone under `$BLACKHOLE` the whole time, and never copy anything between the two.
-
-*Which* repository you clone depends on how you work. The two cases differ only in the URL.
-
-**1. You build the models on your laptop and come to the cluster only to fold.** The cluster
-needs your sampling output, so push it from the laptop and clone *your own* repository here:
-
+Therefore **DO NOT clone the repo in your home directory**. If you build your code locally with your own git repository and just need the HPC for evaluation push or transfer your samples and clone your version of the github repository:
 ```bash
 # on your laptop
 git add results/sequences/my_samples.csv
@@ -242,16 +175,7 @@ cd $BLACKHOLE
 git clone https://github.com/<your-user>/<your-repo>.git
 cd <your-repo>
 ```
-
-Sample CSVs are tracked for exactly this reason - a few hundred kilobytes of text each, so git is
-the simplest way to move them. `scp results/sequences/my_samples.csv
-<user>@login.hpc.dtu.dk:$BLACKHOLE/<your-repo>/results/sequences/` does the same job into a clone
-that already exists. What the folding *produces* stays out of git: `results/eval/` holds a PDB
-file per sample plus the figures, which is far too much to commit, so copy back the one file you
-actually read - `results/eval/<name>/summary.csv` - and leave the rest on the cluster.
-
-**2. You work on the cluster from the start.** Clone this repository (or your fork of it) and do
-everything in the one checkout - train, sample and fold:
+However, if you build everything on the HPC we recommed just cloning this repository once at `$BLACKHOLE`:
 
 ```bash
 cd $BLACKHOLE
@@ -259,7 +183,7 @@ git clone https://github.com/Christianhvilshoej/02456-autoregressive-project.git
 cd 02456-autoregressive-project
 ```
 
-Blackhole is scratch space and is **not backed up**. Push your code to your own GitHub repository
+Note that `$BLACKHOLE` is **not backed up**. Push your code to your own GitHub repository
 as you go, and copy anything that has to outlive the course - the tables and figures you report
 on - somewhere else.
 
