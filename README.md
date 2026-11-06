@@ -131,9 +131,6 @@ for x, x_shifted, y, length in train_loader:
 | `y` | scalar long | the family, as a class index |
 | `length` | int | the number of residues, without `<BOS>`/`<EOS>`/`<PAD>` |
 
-So the generative task is `cross_entropy(logits, x_shifted, ignore_index=IGNORE_INDEX)` - the `-1`
-is exactly what makes the padding free of loss - and the classification task is
-`cross_entropy(class_logits, y)`.
 
 Whole-split tensors are the same data, if a small model is easier to write against them than
 against a loader:
@@ -187,6 +184,10 @@ read what comes out against the controls. **[`eval/README.md`](eval/README.md)**
 that describes the scripts, their output and what each metric means.
 
 ## On the cluster (DTU HPC)
+If you a new to the DTU HPC look at this guide: 
+https://docs.google.com/document/d/1bRtX87ZD7faG1b5CayN5LKUPcn75xmrWt6jFcuwoGMU/edit?tab=t.0
+
+If you do not have a scratch directory on the hpc (eg. /work3), you need to either request access (follow the guide) or wait until Jes has requested storage for the whole course. 
 
 Clone the repo somewhere with room rather than into your home directory, whose quota is small:
 
