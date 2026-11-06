@@ -177,15 +177,3 @@ uv run --group eval python eval/plot_structure.py results/eval/mock_data/pdb/sam
 The `.png` works anywhere. The `.html` is an interactive 3D view: download it from the cluster and
 open it in your browser on your own computer.
 
-## What has been checked
-
-Verified on a laptop, CPU only: `eval.py` on the mock set and on both controls (the real and
-shuffled controls separate as they should, at median nearest identity 0.70 against 0.25), and on
-empty, non-standard, lower-case and duplicate samples;
-`make_controls.py`; `protgen.data` end to end through a `DataLoader`; and that every script's
-`--help` and every `protgen` module imports.
-
-**Not checked here:** anything that needs a GPU or the `eval` group - ESMFold itself (`--fold`),
-`compare_structures.py`, `plot_structure.py` - and the LSF jobs. The queue names and the memory
-requests in `hpc/*.sh` are assumptions, so verify them against `bqueues` and the DTU HPC GPU docs
-before relying on them.

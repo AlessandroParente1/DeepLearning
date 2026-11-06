@@ -24,8 +24,8 @@ cd 02456-autoregressive-project
 Everything below is run from that directory. The data is in the repository, so the clone is all
 you need - there is nothing to download separately.
 
-On the cluster, clone it somewhere with room rather than into your home directory, which has a
-small quota; see [On the cluster](#on-the-cluster-dtu-hpc).
+On the cluster, clone it into `$BLACKHOLE` rather than into your home directory, whose quota is
+small; see [On the cluster](#on-the-cluster-dtu-hpc).
 
 To work on your own copy, fork it on GitHub first and clone the fork, or point this clone at your
 own repository:
@@ -82,10 +82,27 @@ uv sync --group eval        # install them
 uv run --group eval ...     # install them if missing, then run
 ```
 
-Mind the difference between the two: `uv run --group eval ...` installs the group if it is missing,
-while a plain `uv sync` *removes* it again, because it syncs the environment to the default groups
-only. The scripts in `eval/` therefore pass `--group eval` on every call, and `uv sync --group eval`
-is the one to re-run after pulling.
+Nothing records that you installed the group. `--group` is a flag on the one command; neither
+`pyproject.toml` nor `uv.lock` remembers it, and the only state is what is sitting in `.venv`.
+What that means in practice comes down to one asymmetry in uv:
+
+| Command | What happens to the eval packages |
+|---|---|
+| `uv sync --group eval` | installed |
+| `uv sync` | **removed** - a plain sync is *exact*, so it prunes everything outside the default groups |
+| `uv run --group eval ...` | installed if missing, then the command runs |
+| `uv run ...` | left alone - `uv run` syncs *inexactly*, so it never prunes |
+
+The last row is worth knowing, because it looks like a contradiction the first time you meet it:
+once `uv sync --group eval` has run, `uv run python eval/eval.py --fold` folds quite happily
+*without* `--group eval`. The import works because the packages are still in `.venv`, not because
+the command asked for them - and a plain `uv sync` later on takes them away again. Passing
+`--group eval` is what makes a command independent of that history, so the scripts use it for
+everything that folds or reads structures, and plain `uv run` for the sequence metrics, which need
+nothing from the group. `uv sync --group eval` is the one to re-run after pulling.
+
+Only `transformers`, `accelerate` and `py3dmol` are exclusive to the group. `matplotlib` and
+`pandas` are listed in the main dependencies as well, so those two never go away.
 
 ## The data
 
@@ -184,31 +201,80 @@ read what comes out against the controls. **[`eval/README.md`](eval/README.md)**
 that describes the scripts, their output and what each metric means.
 
 ## On the cluster (DTU HPC)
-If you a new to the DTU HPC look at this guide: 
+If you are new to the DTU HPC, look at this guide:
 https://docs.google.com/document/d/1bRtX87ZD7faG1b5CayN5LKUPcn75xmrWt6jFcuwoGMU/edit?tab=t.0
 
-If you do not have a scratch directory on the hpc (eg. /work3), you need to either request access (follow the guide) or wait until Jes has requested storage for the whole course. 
+### Clone under `$BLACKHOLE`
 
-Clone the repo somewhere with room rather than into your home directory, whose quota is small:
+Your home directory holds 30 GB, which this project would fill on its own: the environment is
+about 9.5 GB with the CUDA build of torch, and the ESMFold weights another 8 GB. The course has
+storage on the **blackhole** scratch filesystem, so you do not have to request a `/work3`
+directory yourself. Each of you has your own directory there, and `$BLACKHOLE` points at it:
 
 ```bash
-cd /work3/$USER      # or anywhere else with space
+echo $BLACKHOLE      # /dtu/blackhole/<NN>/<your-student-number>
+```
+
+**The clone goes in there, not in your home directory.** That is the one decision you make
+yourself - no script can move the repository for you. Everything after it is automatic: every
+script in `hpc/` sources `hpc/env.sh`, which points the ESMFold weights and uv's package cache at
+the same `$BLACKHOLE` directory. So you never set `HF_HOME` or `UV_CACHE_DIR` yourself, and
+nothing large ever lands in the home quota.
+
+`$BLACKHOLE` is a *directory*, not a machine. It is mounted on the login nodes and on every
+compute node, so one checkout is what you edit on the login node and what your jobs read when
+they run. "On the login node" further down therefore means the machine you ssh into - you stay
+inside this one clone under `$BLACKHOLE` the whole time, and never copy anything between the two.
+
+*Which* repository you clone depends on how you work. The two cases differ only in the URL.
+
+**1. You build the models on your laptop and come to the cluster only to fold.** The cluster
+needs your sampling output, so push it from the laptop and clone *your own* repository here:
+
+```bash
+# on your laptop
+git add results/sequences/my_samples.csv
+git commit -m "samples to fold"
+git push
+
+# on the login node
+cd $BLACKHOLE
+git clone https://github.com/<your-user>/<your-repo>.git
+cd <your-repo>
+```
+
+Sample CSVs are tracked for exactly this reason - a few hundred kilobytes of text each, so git is
+the simplest way to move them. `scp results/sequences/my_samples.csv
+<user>@login.hpc.dtu.dk:$BLACKHOLE/<your-repo>/results/sequences/` does the same job into a clone
+that already exists. What the folding *produces* stays out of git: `results/eval/` holds a PDB
+file per sample plus the figures, which is far too much to commit, so copy back the one file you
+actually read - `results/eval/<name>/summary.csv` - and leave the rest on the cluster.
+
+**2. You work on the cluster from the start.** Clone this repository (or your fork of it) and do
+everything in the one checkout - train, sample and fold:
+
+```bash
+cd $BLACKHOLE
 git clone https://github.com/Christianhvilshoej/02456-autoregressive-project.git
 cd 02456-autoregressive-project
 ```
+
+Blackhole is scratch space and is **not backed up**. Push your code to your own GitHub repository
+as you go, and copy anything that has to outlive the course - the tables and figures you report
+on - somewhere else.
 
 **Everything the cluster needs lives in `hpc/`**, and nothing in `eval/` is specific to it: the
 Python entry points run anywhere, the shell scripts in `hpc/` are how you run them here.
 
 | In `hpc/` | How you run it | What it is |
 |---|---|---|
-| `setup_env.sh` | `bash hpc/setup_env.sh` | one-time setup on the login node: installs uv and the environment, downloads the ESMFold weights (~8 GB) |
+| `setup_env.sh` | `bash hpc/setup_env.sh` | one-time setup: installs uv and the environment, downloads the ESMFold weights (~8 GB). Run it from the login node - it only downloads, so it needs the network and no GPU |
 | `train.sh` | `bsub < hpc/train.sh` | your training run. Fill in the command at the bottom |
 | `eval.sh` | `bsub < hpc/eval.sh` | scores every sample set listed at the top of the file - **add your own there** |
 | `run_eval.sh` | `bash hpc/run_eval.sh <csv>` | one set, in an interactive GPU session (`sxm2sh`, `voltash`, ...) instead of as a batch job |
-| `env.sh` | sourced by the others | the queue default and the cache locations; not run directly |
+| `env.sh` | sourced by the others | puts uv on the PATH and the big caches under `$BLACKHOLE`; not run directly |
 
-So, once on the login node, then per run:
+All of it runs from inside that clone. Once, on the login node, and then per run:
 
 ```bash
 bash hpc/setup_env.sh                                    # once: environment + ESMFold weights
@@ -230,9 +296,19 @@ command-line options. Run `bqueues` to see which GPU queues exist; every Nvidia 
 because torch on Linux is the CUDA 12.6 build (the PyPI build uses CUDA 13, which has no kernels
 for V100s). Each job log starts with the GPU it got.
 
-`hpc/env.sh` keeps the ESMFold weights and uv's package cache in `/work3/$USER` if it exists and in
-`.cache/` inside the repo otherwise - never in the small home quota. If you run `uv` by hand
-outside these scripts, `source hpc/env.sh` first, otherwise uv fills `~/.cache/uv` again.
+The one case those scripts cannot cover is `uv` run by hand, outside them: `source hpc/env.sh`
+first, or uv fills `~/.cache/uv` in your home quota again.
+
+**Each of you downloads your own copy of the weights.** `$BLACKHOLE` is `drwx------`, your own
+directory and no one else's, so one person's download is not visible to the rest of the group and
+everyone runs `setup_env.sh` once. 8 GB out of a scratch directory is cheap, so that is the
+intended arrangement rather than something to work around. If a single shared, group-readable copy
+ever appears, point at it with environment variables instead - the scripts need no change:
+
+```bash
+export HF_HOME=/path/to/shared/huggingface
+export HF_HUB_OFFLINE=1   # read that cache as it is, without trying to write to it
+```
 
 **The sequence metrics need no GPU**, so only folding has to come here at all:
 
@@ -260,6 +336,7 @@ hpc/               how to run them on the cluster: the #BSUB job scripts, the se
 notebooks/         introduction.ipynb - the dataset class in a few cells
 config/            empty: your Hydra config, if you use one
 results/
-  sequences/       sample CSVs (`sequence` column). mock_data.csv is checked in; the rest is
-                   gitignored, as is results/eval/
+  sequences/       sample CSVs (`sequence` column), tracked in git so that they travel to the
+                   cluster with the repo. mock_data.csv ships with it
+  eval/            gitignored: the metrics, the PDB files from --fold and the figures
 ```

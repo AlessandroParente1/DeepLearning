@@ -5,13 +5,11 @@
 # and the torch wheels ship their own CUDA libraries, so usually none are needed.
 EVAL_MODULES="${EVAL_MODULES:-}"
 
-# LSF settings (DTU HPC). Check `bqueues` / the DTU HPC GPU docs for the current names.
-# torch on Linux is the CUDA 12.6 build (see pyproject.toml), which runs on every Nvidia queue:
-# gpuv100, gpua100, gpua10, gpua40, gpul40s.
-QUEUE="${QUEUE:-gpuv100}"
-WALLTIME="${WALLTIME:-02:00}"
-CORES="${CORES:-4}"
-MEM_PER_CORE="${MEM_PER_CORE:-8GB}"
+# The queue, walltime, cores and memory are NOT set here: they are the #BSUB lines at the top of
+# hpc/train.sh and hpc/eval.sh. LSF reads those headers as comments before any shell runs, so they
+# cannot reference a variable - edit them in the job script itself. Check `bqueues` for the queue
+# names in use; torch on Linux is the CUDA 12.6 build (see pyproject.toml), which runs on every
+# Nvidia queue: gpuv100, gpua100, gpua10, gpua40, gpul40s.
 
 for module_name in $EVAL_MODULES; do
     module load "$module_name"
@@ -19,17 +17,29 @@ done
 
 export PATH="$HOME/.local/bin:$PATH"  # where the uv installer puts uv
 
-# Keep the big caches out of the small home quota: the ESMFold weights (~8 GB) and uv's
-# package cache (several GB of torch/CUDA wheels). They go to /work3/$USER if it exists,
-# otherwise to .cache/ inside this repository. Set HF_HOME / UV_CACHE_DIR to override.
+# Keep the big caches out of the small home quota: the ESMFold weights (~8 GB) and uv's package
+# cache (several GB of torch/CUDA wheels). First choice is the course's blackhole scratch space -
+# $BLACKHOLE, which DTU HPC sets per user to /dtu/blackhole/<NN>/<student-number> - then /work3
+# for anyone who still has their own there, and otherwise .cache/ inside this repository.
+# Set HF_HOME / UV_CACHE_DIR to override either one, e.g. to a shared read-only copy of the
+# weights (together with HF_HUB_OFFLINE=1, so huggingface_hub does not try to write to it).
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"  # -P: real path, not via symlinks
-# The scripts that source this file run under `set -u`, where a bare $USER would abort them in any
-# environment that does not export it - a batch job started from a bare shell, for one.
+# The scripts that source this file run under `set -u`, where a bare $BLACKHOLE or $USER would
+# abort them in any environment that does not export it - a batch job started from a bare shell,
+# for one.
 WHO="${USER:-$(id -un)}"
-if [ -d "/work3/$WHO" ]; then
+if [ -d "${BLACKHOLE:-}" ]; then
+    CACHE_ROOT="$BLACKHOLE"
+elif [ -d "/work3/$WHO" ]; then
     CACHE_ROOT="/work3/$WHO"
 else
     CACHE_ROOT="$REPO_DIR/.cache"
+    # Downloading 8 GB of ESMFold weights a second time, into a repository that might itself sit in
+    # the home quota, is worth a word. A job that did not inherit the login shell's environment is
+    # the usual reason $BLACKHOLE is missing here.
+    if [ "$(uname -s)" = "Linux" ]; then
+        echo "note: \$BLACKHOLE is not set, so the caches go to $CACHE_ROOT instead" >&2
+    fi
 fi
 export HF_HOME="${HF_HOME:-$CACHE_ROOT/huggingface}"
 export UV_CACHE_DIR="${UV_CACHE_DIR:-$CACHE_ROOT/uv}"
