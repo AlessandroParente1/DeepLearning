@@ -212,7 +212,7 @@ storage on the **blackhole** scratch filesystem, so you do not have to request a
 directory yourself. Each of you has your own directory there, and `$BLACKHOLE` points at it:
 
 ```bash
-echo $BLACKHOLE      # /dtu/blackhole/<NN>/<your-student-number>
+echo $BLACKHOLE      # /dtu/blackhole/<your-personal-path>
 ```
 
 **The clone goes in there, not in your home directory.** That is the one decision you make
@@ -299,22 +299,73 @@ for V100s). Each job log starts with the GPU it got.
 The one case those scripts cannot cover is `uv` run by hand, outside them: `source hpc/env.sh`
 first, or uv fills `~/.cache/uv` in your home quota again.
 
-**Each of you downloads your own copy of the weights.** `$BLACKHOLE` is `drwx------`, your own
-directory and no one else's, so one person's download is not visible to the rest of the group and
-everyone runs `setup_env.sh` once. 8 GB out of a scratch directory is cheap, so that is the
-intended arrangement rather than something to work around. If a single shared, group-readable copy
-ever appears, point at it with environment variables instead - the scripts need no change:
-
-```bash
-export HF_HOME=/path/to/shared/huggingface
-export HF_HUB_OFFLINE=1   # read that cache as it is, without trying to write to it
-```
 
 **The sequence metrics need no GPU**, so only folding has to come here at all:
 
 ```bash
 uv run python eval/eval.py --samples results/sequences/my_samples.csv   # runs on your laptop
 ```
+
+## Getting a GPU: interactive or the queue
+
+Two ways to reach a GPU on the cluster, and they suit opposite kinds of work. DTU's own overview
+of the GPU nodes, with the current hardware, is worth a read:
+<https://www.hpc.dtu.dk/?page_id=2129>.
+
+### Interactive
+
+One command puts you on a GPU node with a shell:
+
+| Command | Node | GPUs |
+|---|---|---|
+| `voltash` | Tesla V100 | 2, 16 GB each |
+| `sxm2sh` | Tesla V100-SXM2 | 4, 32 GB each |
+| `a100sh` | Tesla A100 | 2, 40 GB each |
+
+**These nodes are shared.** Several people are logged into one at a time, and every one of them
+can see every GPU on it, so the memory you actually get is whatever the others have left. Folding
+a large set of long sequences on a busy node is the most reliable way to meet:
+
+```
+torch.cuda.OutOfMemoryError: CUDA out of memory
+```
+
+So look before you start, and pick a device that is idle:
+
+```bash
+nvidia-smi                      # memory used / total per device, and whose processes
+export CUDA_VISIBLE_DEVICES=1   # the device number from nvidia-smi
+```
+
+Set it before the `uv run`, in the same shell.
+
+What interactive nodes are *good* at is the work in the middle of this project: writing code, a
+smoke test, and training the models themselves. An MLP, RNN or transformer over 129-token
+sequences is small enough to train happily on a shared V100, and you see the result in seconds
+instead of waiting for a queue slot.
+
+### The queue
+
+Folding a full sample set is the opposite case - long, memory-hungry and unattended - so it
+belongs in a batch job:
+
+```bash
+bsub < hpc/eval.sh      # every set listed at the top of the file
+bjobs                   # follow it; logs in hpc/logs/
+```
+
+The `#BSUB -gpu "num=1:mode=exclusive_process"` line in those scripts is what makes this different
+from the interactive case: the GPU is yours alone for the job, so no one else's process can appear
+on your device halfway through and take the memory you were counting on. Queue, walltime and
+memory are the other `#BSUB` lines, as described above.
+
+**Rule of thumb**
+
+| Work | Where |
+|---|---|
+| writing code, a smoke test on a few samples | interactive |
+| training the models in this project | interactive is usually enough |
+| `--fold` on a full sample set, or all the controls at once | the queue |
 
 ## Layout
 
