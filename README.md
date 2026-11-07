@@ -115,7 +115,7 @@ from protgen.data import ProteinDataset
 train_data = ProteinDataset("data/train.csv")
 val_data = ProteinDataset("data/val.csv")
 print(train_data)
-# ProteinDataset(num_samples=16020, vocab_size=23, num_classes=3, max_length=129)
+# ProteinDataset(num_samples=16020, vocab_size=23, num_classes=3, max_length=129) // note that the formatting is out of date
 
 x, x_shifted, y, length = train_data[0]
 train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
@@ -126,7 +126,7 @@ for x, x_shifted, y, length in train_loader:
 
 | Item | Shape | What it is |
 |---|---|---|
-| `x` | `(129,)` long | `<BOS>`, the residues, `<EOS>`, then `<PAD>` to `max_length` |
+| `x` | `(129,)` long | `<BOS>`, the residues, `<EOS>`, then `<PAD>` to `MAX_DATA_LENGTH` |
 | `x_shifted` | `(129,)` long | `x` shifted left by one: the next-token target, with `IGNORE_INDEX` (`-1`) past the end of the sequence |
 | `y` | scalar long | the family, as a class index |
 | `length` | int | the number of residues, without `<BOS>`/`<EOS>`/`<PAD>` |

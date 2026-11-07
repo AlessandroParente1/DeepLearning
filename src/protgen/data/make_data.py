@@ -13,6 +13,8 @@ VOCABULARY = dict(zip(ALL_TOKENS, range(len(ALL_TOKENS))))
 VOCABULARY_SIZE = len(VOCABULARY)
 FAMILY_TO_INDEX = dict(zip(FAMILIES, range(len(FAMILIES))))
 
+MAX_DATA_LENGTH = 127 + 2 #Longest sequence + <BOS> / <EOS>
+
 class ProteinDataset(Dataset):
     """
     A dataset class for protein sequences and their corresponding families.
@@ -39,7 +41,6 @@ class ProteinDataset(Dataset):
     def __init__(self, path_to_data):
         # Load raw CSV files
         self.df = pd.read_csv(path_to_data)
-        self.max_length = 127 + 2    #Longest sequence + <BOS> / <EOS>
 
         self.tokens, self.tokens_shifted, self.labels, self.lengths = [], [], [], []
         # encode proteins and familiy
@@ -62,7 +63,7 @@ class ProteinDataset(Dataset):
         tokens = [VOCABULARY[residue] for residue in sequence]
         # Integer ids: nn.Embedding and F.cross_entropy both refuse a float tensor. <PAD> is id 0,
         # so the zeros are already the padding and only <BOS>/<EOS>/the residues are written in.
-        x = torch.zeros(self.max_length, dtype=torch.long)
+        x = torch.zeros(MAX_DATA_LENGTH, dtype=torch.long)
         # Add <BOS> and <EOS> tokens
         x[0] = VOCABULARY["<BOS>"]
         x[1:len(tokens)+1] = torch.tensor(tokens, dtype=torch.long)
@@ -97,4 +98,5 @@ class ProteinDataset(Dataset):
         return x, x_shifted, label, length
 
     def __repr__(self):
-        return f"ProteinDataset(num_samples={len(self)}, vocab_size={VOCABULARY_SIZE}, num_classes={len(FAMILY_TO_INDEX)}, max_length={self.max_length})"
+        # Yes this format is a bit unconventional, no one cares, just keep it like this
+        return f"ProteinDataset(number of samples = {len(self)}, vocabulary size = {VOCABULARY_SIZE}, number of classes = {len(FAMILY_TO_INDEX)}, max data length (hardcoded) = {MAX_DATA_LENGTH})"
