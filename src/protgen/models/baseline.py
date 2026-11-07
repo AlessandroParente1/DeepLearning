@@ -8,6 +8,8 @@ from protgen import data
 # Included only for comparison since the introduction notebook used randn
 def standard_normal_distributed_logits(batch_size: int):
     tensor = torch.randn(batch_size, data.VOCABULARY_SIZE, data.MAX_DATA_LENGTH)
+    # -inf used to mask off logits because of softmax definition
+    # e^-inf is 0
     tensor[:, data.VOCABULARY["<PAD>"], :] = float("-inf")
     tensor[:, data.VOCABULARY["<BOS>"], :] = float("-inf")
     return tensor
@@ -18,6 +20,8 @@ def standard_normal_distributed_logits(batch_size: int):
 # This is the baseline we should be benchmarking against
 def uniform_logits(batch_size: int):
     tensor = torch.zeros(batch_size, data.VOCABULARY_SIZE, data.MAX_DATA_LENGTH)
+    # -inf used to mask off logits because of softmax definition
+    # e^-inf is 0
     tensor[:, data.VOCABULARY["<PAD>"], :] = float("-inf")
     tensor[:, data.VOCABULARY["<BOS>"], :] = float("-inf")
     return tensor
