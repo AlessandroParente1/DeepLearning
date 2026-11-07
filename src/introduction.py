@@ -21,10 +21,10 @@ print(f"# Sample 0: \nTokens: \n {x}\n Shifted: \n {x_shifted}\n Label: {y}\n Le
 
 # DataLoader
 train_loader = DataLoader(train_data, batch_size=32, shuffle=True)
-from protgen.data import AMINO_ACIDS, FAMILIES, IGNORE_INDEX, SPECIAL_TOKENS
+from protgen.data import AMINO_ACIDS, FAMILIES, IGNORE_INDEX, SPECIAL_TOKENS, FAMILY_TO_INDEX, VOCABULARY, VOCABULARY_SIZE
 
-print(f"vocab ({train_data.vocab_size} tokens): {train_data.vocab}")
-print(f"families: {train_data.fam_to_idx}")
+print(f"vocab ({VOCABULARY_SIZE} tokens): {VOCABULARY}")
+print(f"families: {FAMILY_TO_INDEX}")
 print(f"padding is ignored in the loss with ignore_index={IGNORE_INDEX}")
 
 sequence = train_data.df["sequence"][0]
@@ -40,7 +40,7 @@ x, x_shifted, y, length = next(iter(train_loader))
 print(f"batch: x {tuple(x.shape)} {x.dtype}, x_shifted {tuple(x_shifted.shape)}, y {tuple(y.shape)}")
 
 # Generative: one distribution over the vocabulary per position.
-logits_gen = torch.randn(x.shape[0], train_data.vocab_size, train_data.max_length)
+logits_gen = torch.randn(x.shape[0], VOCABULARY_SIZE, train_data.max_length)
 print(f"generative loss:     {F.cross_entropy(logits_gen, x_shifted, ignore_index=IGNORE_INDEX):.4f}")
 
 # Classification: one distribution over the three families per sequence.

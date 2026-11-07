@@ -69,7 +69,7 @@ for the difference to matter: about 1 GB on Linux without a GPU, 9.5 GB with the
 torch.)
 
 `uv sync` also installs the `protgen` package itself, in editable mode. `import protgen` then works
-from anywhere - a notebook in `notebooks/`, a script on the cluster, the project root - with no
+from anywhere - a script on the cluster, the project root - with no
 `sys.path` lines. The package lives in `src/protgen/`, the src layout, so `import protgen` can only
 ever resolve to the installed package and never to a directory that happens to sit in the current
 working directory.
@@ -143,7 +143,7 @@ Y_fam = train_data.labels          # (16020,) long
 
 **The vocabulary** is fixed in `protgen.data`, not inferred from the data, so a token id means the
 same residue in every run and checkpoint: `<PAD>` 0, `<BOS>` 1, `<EOS>` 2, then the 20 standard
-residues in alphabetical order, 3 to 22. `train_data.vocab` is that mapping, `vocab_size` is 23,
+residues in alphabetical order, 3 to 22. `protgen.data.VOCABULARY` is that mapping, `protgen.data.VOCABULARY_SIZE` is 23,
 and `encode` / `decode` go between a residue string and a token tensor (`decode` drops the special
 tokens, so `decode(x)` and `decode(x_shifted)` both give the protein back).
 
@@ -155,8 +155,8 @@ tokens, so `decode(x)` and `decode(x_shifted)` both give the protein back).
 | 1 | HPr |
 | 2 | HU |
 
-`train_data.fam_to_idx` is that mapping. `notebooks/introduction.ipynb` runs through all of the
-above in a few cells.
+`protgen.data.FAMILY_TO_INDEX` is that mapping. `src/introduction.py` runs through all of the
+above.
 
 ## What you build
 
@@ -252,12 +252,12 @@ src/protgen/
     controls.py    the real and shuffled control sets
     fold.py        ESMFold (needs a GPU and the eval group)
     structures.py  secondary structure, compactness, TM-score
+  introduction.py  introduces the dataset class
 eval/              the entry points, runnable anywhere: eval.py, make_controls.py,
                    compare_structures.py, plot_structure.py. What the numbers mean is in
                    eval/README.md
 hpc/               how to run them on the cluster: the #BSUB job scripts, the setup script and the
                    shared settings. logs/ is where a job's .out/.err land
-notebooks/         introduction.ipynb - the dataset class in a few cells
 config/            empty: your Hydra config, if you use one
 results/
   sequences/       sample CSVs (`sequence` column). mock_data.csv is checked in; the rest is

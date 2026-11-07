@@ -5,7 +5,10 @@ from .make_data import (
     ProteinDataset,
     SPECIAL_TOKENS,
     ALL_TOKENS,
+    VOCABULARY,
+    VOCABULARY_SIZE,
+    FAMILY_TO_INDEX
 )
 
 __all__ = ["AMINO_ACIDS", "FAMILIES", "IGNORE_INDEX", "ProteinDataset", "SPECIAL_TOKENS",
-           "ALL_TOKENS"]
+           "ALL_TOKENS", "VOCABULARY", "VOCABULARY_SIZE", "FAMILY_TO_INDEX"]

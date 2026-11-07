@@ -9,6 +9,10 @@ SPECIAL_TOKENS = ["<PAD>", "<BOS>", "<EOS>"]
 ALL_TOKENS = list(SPECIAL_TOKENS) + list(AMINO_ACIDS)
 IGNORE_INDEX = -1  # what F.cross_entropy(ignore_index=...) must be given for the generative task
 
+VOCABULARY = dict(zip(ALL_TOKENS, range(len(ALL_TOKENS))))
+VOCABULARY_SIZE = len(VOCABULARY)
+FAMILY_TO_INDEX = dict(zip(FAMILIES, range(len(FAMILIES))))
+
 class ProteinDataset(Dataset):
     """
     A dataset class for protein sequences and their corresponding families.
@@ -33,10 +37,6 @@ class ProteinDataset(Dataset):
     """
 
     def __init__(self, path_to_data):
-        # Set token and family mappings
-        self.vocab = dict(zip(ALL_TOKENS, range(len(ALL_TOKENS))))
-        self.fam_to_idx = dict(zip(FAMILIES, range(len(FAMILIES))))
-
         # Load raw CSV files
         self.df = pd.read_csv(path_to_data)
         self.max_length = 127 + 2    #Longest sequence + <BOS> / <EOS>
@@ -50,7 +50,7 @@ class ProteinDataset(Dataset):
             # Append to lists
             self.tokens.append(tokens)
             self.tokens_shifted.append(shifted_tokens)
-            self.labels.append(self.fam_to_idx[label])
+            self.labels.append(FAMILY_TO_INDEX[label])
             self.lengths.append(length)
 
         self.tokens = torch.stack(self.tokens)
@@ -59,14 +59,14 @@ class ProteinDataset(Dataset):
 
     def encode(self, sequence):
         """Convert a string of residues to a tensor of token ids."""
-        tokens = [self.vocab[residue] for residue in sequence]
+        tokens = [VOCABULARY[residue] for residue in sequence]
         # Integer ids: nn.Embedding and F.cross_entropy both refuse a float tensor. <PAD> is id 0,
         # so the zeros are already the padding and only <BOS>/<EOS>/the residues are written in.
         x = torch.zeros(self.max_length, dtype=torch.long)
         # Add <BOS> and <EOS> tokens
-        x[0] = self.vocab["<BOS>"]
+        x[0] = VOCABULARY["<BOS>"]
         x[1:len(tokens)+1] = torch.tensor(tokens, dtype=torch.long)
-        x[len(tokens)+1] = self.vocab["<EOS>"]
+        x[len(tokens)+1] = VOCABULARY["<EOS>"]
         return x
 
     def decode(self, tokens):
@@ -75,7 +75,7 @@ class ProteinDataset(Dataset):
         Only the 20 residues have a character: <BOS>, <EOS>, <PAD> and the IGNORE_INDEX of a
         shifted target are dropped, so decoding either x or x_shifted gives the protein back.
         """
-        idx_to_vocab = {index: token for token, index in self.vocab.items()}
+        idx_to_vocab = {index: token for token, index in VOCABULARY.items()}
         residues = set(AMINO_ACIDS)
         return "".join(idx_to_vocab[int(token)] for token in tokens
                        if idx_to_vocab.get(int(token)) in residues)
@@ -85,11 +85,6 @@ class ProteinDataset(Dataset):
         shifted_tokens = torch.ones_like(tokens) * IGNORE_INDEX
         shifted_tokens[:length + 1] = tokens[1:length + 2] 
         return shifted_tokens
-
-    @property
-    def vocab_size(self):
-        """Size of a model's embedding table and output layer."""
-        return len(self.vocab)
 
     def __len__(self):
         return len(self.tokens)
@@ -102,4 +97,4 @@ class ProteinDataset(Dataset):
         return x, x_shifted, label, length
 
     def __repr__(self):
-        return f"ProteinDataset(num_samples={len(self)}, vocab_size={self.vocab_size}, num_classes={len(self.fam_to_idx)}, max_length={self.max_length})"
+        return f"ProteinDataset(num_samples={len(self)}, vocab_size={VOCABULARY_SIZE}, num_classes={len(FAMILY_TO_INDEX)}, max_length={self.max_length})"
