@@ -63,7 +63,7 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
         x, x_shifted, y, length = (t.to("cuda") for t in data) # figure out a better way to keep things tied to device
 
         left_padding, right_padding = CONTEXT_SIZE - 1, 0 # we only need size - 1 padding because we start after BOS
-        x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<BOS>"])
+        x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<PAD>"])
         windows = x_padded.unfold(1, CONTEXT_SIZE, 1) # gets us BATCH_SIZE x MAX_DATA_LENGTH x CONTEXT_SIZE by adding that last dimension
         input = F.one_hot(windows, VOCABULARY_SIZE).float() # gets us BATCH_SIZE x MAX_DATA_LENGTH x CONTEXT_SIZE x VOCAB_SIZE
 
@@ -88,6 +88,9 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
     return average_pertoken_loss
 
 
+# https://docs.pytorch.org/docs/2.15/generated/torch.no_grad.html
+# https://www.geeksforgeeks.org/python/what-is-with-torch-no_grad-in-pytorch/
+@torch.no_grad()
 def evaluate(model: nn.Module, data_loader: DataLoader):
     model.eval() # :)
     total_eval_loss_sum = 0.0
@@ -97,7 +100,7 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
             x, x_shifted, y, length = (t.to("cuda") for t in data)
     
             left_padding, right_padding = CONTEXT_SIZE - 1, 0
-            x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<BOS>"])
+            x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<PAD>"])
             windows = x_padded.unfold(1, CONTEXT_SIZE, 1)
             input = F.one_hot(windows, VOCABULARY_SIZE).float()
             shaped_input = input.reshape(-1, CONTEXT_SIZE, VOCABULARY_SIZE)
@@ -112,7 +115,6 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
     average_eval_token_loss = total_eval_loss_sum / total_eval_token_count
     return average_eval_token_loss
 
-        
 
 if __name__ == "__main__":
     main()
