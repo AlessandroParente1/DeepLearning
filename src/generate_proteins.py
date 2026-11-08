@@ -12,8 +12,9 @@ def main():
     model.load_state_dict(weights)
     model.eval()
 
-    test = generate_protein(model)
-    print(test)
+    for _ in range(20):
+        protein = generate_protein(model)
+        print(protein) # obviously dont do this manually forever
 
 
 def generate_protein(model: nn.Module):
@@ -37,8 +38,10 @@ def generate_protein(model: nn.Module):
 
         # note that these output an index, not a token, so we need to map
         next_token_index = torch.multinomial(probabilities, num_samples=1).item()
-        #next_token_index = probs.argmax(dim=-1).item() # this one is fun to try for the famous sample-vs-max experiment
         
+        #next_token_index = probs.argmax(dim=-1).item() # this one is fun to try for the famous sample-vs-max experiment
+        # actually upon trying it, it never predicts EOS lol, we'd need to cut it short
+
         if next_token_index == VOCABULARY["<EOS>"]:
             break
 
