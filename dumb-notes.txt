@@ -1,0 +1,13 @@
+What is the loss on a token in the cross entropy thingy?
+Well it's - ln(p) where p is the predicted probability of the true token (logit has to go through SoftMax to probability space)
+So altogether the loss is basically (sum of all the -ln (p)) over N (N being token count, length, whatever, not vocabulary)
+
+Why do we use that loss?
+That's just what cross entropy is
+	there's probably some math about how minimizing THIS is the same as maximizing the probability of predicting the output properly
+
+
+Introduction notebook was using randomized logits for baseline performance (mean 0, sd 1) -- note that only SD makes a difference here since SoftMax uses absolute differences not relative differences
+This is retarded, let's just use uniform instead, and over 21 not 23 because we're not fucking troglodytes
+
+Same uniform goes for the classification, we're comparing against uniform 3-class not a randomly overconfident randn
