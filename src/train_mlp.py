@@ -1,3 +1,5 @@
+import copy
+import time
 from typing import cast
 
 import torch
@@ -18,29 +20,36 @@ def main():
 
     BATCH_SIZE = 32
     MAX_EPOCHS = 1000
+    PATIENCE = 5
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
-    # i'm sure theres a much better way, right now we just stop when it gets worse
-    # we dont even save the best state lol
-    # todo: introduce patience
-    previous_validation_loss = float("inf")
+    best_validation_loss = float("inf")
+    best_model_state_dict = None
+    bad_trend_duration = 0
 
     for epoch in range(MAX_EPOCHS):
         epoch_train_loss = train_one_epoch(model, train_loader, optimizer)
         epoch_validation_loss = evaluate(model, val_loader)
-        print(f"epoch {epoch + 1}: training loss {epoch_train_loss:.4f}")
-        print(f"epoch {epoch + 1}: validation loss {epoch_validation_loss:.4f}")
+        print(f"epoch {epoch + 1}: training loss {epoch_train_loss:.4f},  validation loss {epoch_validation_loss:.4f}")
 
-        if epoch_validation_loss > previous_validation_loss:
-            print(f"Stopping after {epoch + 1} epochs")
+        if epoch_validation_loss > best_validation_loss:
+            bad_trend_duration += 1
+        else:
+            bad_trend_duration = 0
+            best_validation_loss = epoch_validation_loss
+            best_model_state_dict = copy.deepcopy(model.state_dict())
+
+        if bad_trend_duration > PATIENCE:
+            print(f"Stopping after {epoch + 1} epochs.")
             break
-        previous_validation_loss = epoch_validation_loss
 
+    model.load_state_dict(best_model_state_dict)
     test_loss = evaluate(model, test_loader)
     print(f"test loss: {test_loss:.4f}")
+    torch.save(model.state_dict(), f"mlp{time.time()}.pt")
     
 
 
@@ -98,10 +107,7 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
             loss = F.cross_entropy(logits, shaped_target, ignore_index=IGNORE_INDEX, reduction="sum") # note change in reduction
     
             total_eval_loss_sum += loss.item()
-
-            for target in shaped_target:
-                 if target != IGNORE_INDEX:
-                      total_eval_token_count += 1
+            total_eval_token_count += (shaped_target != IGNORE_INDEX).sum().item() # gpu single-instruction magic
 
     average_eval_token_loss = total_eval_loss_sum / total_eval_token_count
     return average_eval_token_loss
