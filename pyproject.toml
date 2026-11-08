@@ -50,7 +50,9 @@ link-mode = "copy"
 default-groups = "all"
 
 [tool.uv.sources]
-torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux'" }]
+# updated this for cuda support on windows
+# if you uv sync now from windows and don't have an nvidia gpu, you will get bloated files but it should still work on cpu
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }]
 
 [[tool.uv.index]]
 name = "pytorch-cu126"
