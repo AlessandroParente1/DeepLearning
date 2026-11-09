@@ -221,39 +221,6 @@ command-line options. Run `bqueues` to see which GPU queues exist; every Nvidia 
 because torch on Linux is the CUDA 12.6 build (the PyPI build uses CUDA 13, which has no kernels
 for V100s). Each job log starts with the GPU it got.
 
-### Where the big files go
-
-Two things here are far too big for the 30 GB home directory, so neither is kept in it:
-
-| | How big | Where it goes | What puts it there |
-|---|---|---|---|
-| the ESMFold weights | 8 GB | `$BLACKHOLE/huggingface` | `src/protgen/metrics/fold.py`, from inside Python |
-| uv's package cache | several GB | `$BLACKHOLE/uv` | `hpc/env.sh`, sourced by the scripts in `hpc/` |
-
-`bash hpc/setup_env.sh` fills both, once, and every later run reads them. To see where the weights
-actually are:
-
-```bash
-uv run python -c "from protgen.metrics.fold import HF_CACHE; print(HF_CACHE)"
-```
-
-The weights are the half that needs nothing remembered. ESMFold is the only model this project
-downloads, so `fold.py` names the directory itself and passes it to Hugging Face, instead of
-relying on `HF_HOME` being exported first. Folding therefore lands in the same cache whether it
-was started by `hpc/eval.sh`, by `eval.py` in an interactive GPU session or by a notebook.
-Setting `HF_HOME` yourself still overrides it.
-
-uv's cache is the half that does: uv runs before any Python of ours can, so `uv` by hand, outside
-these scripts, needs `source hpc/env.sh` first - otherwise it fills `~/.cache/uv` in your home
-quota again.
-
-If a run ever downloads those 8 GB a second time, the cache went somewhere else: print the path
-above, and check that `echo $BLACKHOLE` is not empty (in a batch job it can be, if the job did not
-inherit your login environment - the scripts say so when it happens). Should a copy have ended up
-in your home directory already, `du -sh ~/.cache/huggingface` is how much quota deleting it gives
-back.
-
-
 **The sequence metrics need no GPU**, so only folding has to come here at all:
 
 ```bash
