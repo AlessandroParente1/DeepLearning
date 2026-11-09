@@ -68,7 +68,7 @@ If that prints a small table and a results/, the environment works.
 
 ```bash
 uv sync --group eval        # install them
-uv run --group eval python eval/eval.py --results/sequences/your_data.csv --fold     
+uv run --group eval python eval/eval.py --samples results/sequences/your_data.csv --fold     
 ```
 ## The data
 
