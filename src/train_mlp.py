@@ -2,6 +2,7 @@ import copy
 import time
 from typing import cast
 
+from accelerate import optimizer
 import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
@@ -11,20 +12,28 @@ from protgen.data.make_data import IGNORE_INDEX, VOCABULARY, VOCABULARY_SIZE, Pr
 from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 from torch.utils.data import DataLoader
 
+# for plotting loss curves 
+results = {
+    "Epoch_number": [],
+    "validation_loss": [],
+    "training_loss": []
+}
+
 def main():
-    model = MultiLayerPerceptron().to("cuda")
+    model = MultiLayerPerceptron().to("cpu")
 
     train_data = ProteinDataset(path_to_data="data/train.csv")
     val_data = ProteinDataset(path_to_data="data/val.csv")
     test_data = ProteinDataset(path_to_data="data/test.csv")
 
     BATCH_SIZE = 32
-    MAX_EPOCHS = 1000
+    MAX_EPOCHS = 100
     PATIENCE = 5
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.0001)
+    #optimizer = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
 
     best_validation_loss = float("inf")
     best_model_state_dict = None
@@ -34,6 +43,10 @@ def main():
         epoch_train_loss = train_one_epoch(model, train_loader, optimizer)
         epoch_validation_loss = evaluate(model, val_loader)
         print(f"epoch {epoch + 1}: training loss {epoch_train_loss:.4f},  validation loss {epoch_validation_loss:.4f}")
+        results["Epoch_number"].append(epoch + 1)
+        results["training_loss"].append(epoch_train_loss)
+        results["validation_loss"].append(epoch_validation_loss)
+
 
         if epoch_validation_loss > best_validation_loss:
             bad_trend_duration += 1
@@ -60,7 +73,7 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
     total_pertoken_loss = 0.0
 
     for i, data in enumerate(data_loader):
-        x, x_shifted, y, length = (t.to("cuda") for t in data) # figure out a better way to keep things tied to device
+        x, x_shifted, y, length = (t.to("cpu") for t in data) # figure out a better way to keep things tied to device
 
         left_padding, right_padding = CONTEXT_SIZE - 1, 0 # we only need size - 1 padding because we start after BOS
         x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<PAD>"])
@@ -97,7 +110,7 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
     total_eval_token_count = 0
 
     for i, data in enumerate(data_loader):
-            x, x_shifted, y, length = (t.to("cuda") for t in data)
+            x, x_shifted, y, length = (t.to("cpu") for t in data)
     
             left_padding, right_padding = CONTEXT_SIZE - 1, 0
             x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<PAD>"])
@@ -118,3 +131,24 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
 
 if __name__ == "__main__":
     main()
+
+#Plotting loss curves
+import matplotlib.pyplot as plt
+
+Learning_rate = 0.001
+optimizer = "Adam"
+batch_size = 32
+
+plt.plot(results["Epoch_number"], results["training_loss"], label="Training Loss")
+plt.plot(results["Epoch_number"], results["validation_loss"], label="Validation Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+
+# hyperparameters as a separate legend entry
+plt.plot([], [], " ", label=f"Optimizer: {optimizer}")
+plt.plot([], [], " ", label=f"Learning rate: {Learning_rate}")
+plt.plot([], [], " ", label=f"Batch size: {batch_size}")
+
+plt.title("Training and Validation Loss Curves for MLP Model")
+plt.legend()
+plt.show()

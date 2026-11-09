@@ -7,7 +7,7 @@ from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 
 
 def main():
-    model = MultiLayerPerceptron().to("cuda")
+    model = MultiLayerPerceptron().to("cpu")
     weights = torch.load("mlp1794165016.2621043.pt", weights_only=True)
     model.load_state_dict(weights)
     model.eval()
@@ -29,7 +29,7 @@ def generate_protein(model: nn.Module):
 
         # wrapper for gpu-ness
         # note the important [ ] to align shape with model expectations by adding one extra dim
-        single_window = torch.tensor([context_tokens], device="cuda")
+        single_window = torch.tensor([context_tokens], device="cpu")
         input = F.one_hot(single_window, VOCABULARY_SIZE).float()
         # no need to re-shape because the window already has 1 x CONTEXT_SIZE dimensions
 
