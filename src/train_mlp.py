@@ -12,14 +12,16 @@ from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 from torch.utils.data import DataLoader
 
 def main():
-    model = MultiLayerPerceptron().to("cuda")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    model = MultiLayerPerceptron().to(device)
 
     train_data = ProteinDataset(path_to_data="data/train.csv")
     val_data = ProteinDataset(path_to_data="data/val.csv")
     test_data = ProteinDataset(path_to_data="data/test.csv")
 
     BATCH_SIZE = 32
-    MAX_EPOCHS = 1000
+    MAX_EPOCHS = 100
     PATIENCE = 5
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
@@ -31,8 +33,8 @@ def main():
     bad_trend_duration = 0
 
     for epoch in range(MAX_EPOCHS):
-        epoch_train_loss = train_one_epoch(model, train_loader, optimizer)
-        epoch_validation_loss = evaluate(model, val_loader)
+        epoch_train_loss = train_one_epoch(model, train_loader, optimizer, device)
+        epoch_validation_loss = evaluate(model, val_loader, device)
         print(f"epoch {epoch + 1}: training loss {epoch_train_loss:.4f},  validation loss {epoch_validation_loss:.4f}")
 
         if epoch_validation_loss > best_validation_loss:
@@ -47,7 +49,7 @@ def main():
             break
 
     model.load_state_dict(best_model_state_dict)
-    test_loss = evaluate(model, test_loader)
+    test_loss = evaluate(model, test_loader, device)
     print(f"test loss: {test_loss:.4f}")
     torch.save(model.state_dict(), f"mlp{time.time()}.pt")
     
@@ -55,12 +57,17 @@ def main():
 
 # https://docs.pytorch.org/tutorials/beginner/introyt/trainingyt.html
 # https://docs.pytorch.org/docs/2.15/generated/torch.nn.Unfold.html
-def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimizer):
+def train_one_epoch(
+    model: nn.Module,
+    data_loader: DataLoader,
+    optimizer: Optimizer,
+    device: torch.device,
+):
     model.train() # why is the mode toggle implemented as a random function call? who knows
     total_pertoken_loss = 0.0
 
     for i, data in enumerate(data_loader):
-        x, x_shifted, y, length = (t.to("cuda") for t in data) # figure out a better way to keep things tied to device
+        x, x_shifted, y, length = (t.to(device) for t in data) # figure out a better way to keep things tied to device
 
         left_padding, right_padding = CONTEXT_SIZE - 1, 0 # we only need size - 1 padding because we start after BOS
         x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<PAD>"])
@@ -91,13 +98,17 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
 # https://docs.pytorch.org/docs/2.15/generated/torch.no_grad.html
 # https://www.geeksforgeeks.org/python/what-is-with-torch-no_grad-in-pytorch/
 @torch.no_grad()
-def evaluate(model: nn.Module, data_loader: DataLoader):
+def evaluate(
+    model: nn.Module,
+    data_loader: DataLoader,
+    device: torch.device,
+):
     model.eval() # :)
     total_eval_loss_sum = 0.0
     total_eval_token_count = 0
 
     for i, data in enumerate(data_loader):
-            x, x_shifted, y, length = (t.to("cuda") for t in data)
+            x, x_shifted, y, length = (t.to(device) for t in data)
     
             left_padding, right_padding = CONTEXT_SIZE - 1, 0
             x_padded = F.pad(x, (left_padding, right_padding), value=VOCABULARY["<PAD>"])
