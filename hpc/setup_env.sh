@@ -20,11 +20,15 @@ mkdir -p hpc/logs
 
 # Only download the files: loading the 8 GB model needs more memory than a login node allows.
 # The model itself is loaded in the GPU job, which asks for enough memory.
-echo "Downloading ESMFold weights to $HF_HOME (about 8 GB, only the first time) ..."
+#
+# The download goes through the same protgen.metrics.fold.weights_dir() that folding itself
+# calls, so the directory filled here is by construction the one every later run reads - rather
+# than two pieces of code that agree on a cache only until somebody edits one of them.
+echo "Downloading the ESMFold weights (about 8 GB, only the first time) ..."
 uv run --group eval python - <<'PY'
-from huggingface_hub import snapshot_download
+from protgen.metrics.fold import weights_dir
 
-print("ESMFold weights are cached in", snapshot_download("facebook/esmfold_v1"))
+print("ESMFold weights are in", weights_dir())
 PY
 
 echo
