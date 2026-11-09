@@ -33,5 +33,5 @@ PY
 
 echo
 echo "Setup done. Score a set of samples on a GPU with either of:"
-echo "    bsub < hpc/eval.sh                                       # every set, as a batch job"
+echo "    bsub < hpc/eval.sh                                       # one set, as a batch job"
 echo "    bash hpc/run_eval.sh results/sequences/mock_data.csv     # one set, in a GPU session"

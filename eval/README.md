@@ -151,6 +151,18 @@ two lines on the table `eval.py` already builds.
 uv run --group eval python eval/eval.py --samples results/sequences/mock_data.csv --fold
 ```
 
+The 8 GB of ESMFold weights are downloaded once - by `bash hpc/setup_env.sh` on the cluster, or
+by the first `--fold` anywhere else - and then read from the cache, without the Hub being
+contacted at all. `fold.py` decides where that cache is rather than leaving it to an environment
+variable you have to remember: `$BLACKHOLE/huggingface` on the DTU HPC, and `.cache/huggingface`
+in this repository anywhere else. To print it:
+
+```bash
+uv run python -c "from protgen.metrics.fold import HF_CACHE; print(HF_CACHE)"
+```
+
+The [root README](../README.md#where-the-big-files-go) has the rest.
+
 pLDDT says ESMFold is confident, not that it predicts the right fold. Compare the structures of
 all sets in one go (CPU only, about half a minute per 1000 structures with 8 workers):
 

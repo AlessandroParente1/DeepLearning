@@ -194,9 +194,9 @@ Python entry points run anywhere, the shell scripts in `hpc/` are how you run th
 |---|---|---|
 | `setup_env.sh` | `bash hpc/setup_env.sh` | one-time setup: installs uv and the environment, downloads the ESMFold weights (~8 GB). Run it from the login node - it only downloads, so it needs the network and no GPU |
 | `train.sh` | `bsub < hpc/train.sh` | your training run. Fill in the command at the bottom |
-| `eval.sh` | `bsub < hpc/eval.sh` | scores every sample set listed at the top of the file - **add your own there** |
+| `eval.sh` | `bsub < hpc/eval.sh` | scores one sample set, structures included - **point `--samples` at your own CSV** |
 | `run_eval.sh` | `bash hpc/run_eval.sh <csv>` | one set, in an interactive GPU session (`sxm2sh`, `voltash`, ...) instead of as a batch job |
-| `env.sh` | sourced by the others | puts uv on the PATH and the big caches under `$BLACKHOLE`; not run directly |
+| `env.sh` | sourced by the others | puts uv on the PATH and uv's package cache under `$BLACKHOLE`; not run directly |
 
 All of it runs from inside that clone. Once, on the login node, and then per run:
 
@@ -204,24 +204,54 @@ All of it runs from inside that clone. Once, on the login node, and then per run
 bash hpc/setup_env.sh                                    # once: environment + ESMFold weights
 
 bsub < hpc/train.sh                                      # your training command
-bsub < hpc/eval.sh                                       # every set that exists, controls included
+bsub < hpc/eval.sh                                       # score one set, ESMFold included
 bjobs                                                    # follow them; logs in hpc/logs/
 
 bash hpc/run_eval.sh results/sequences/mock_data.csv      # or one set, interactively
 ```
 
-Training needs no setup beyond `uv sync`; it is folding that needs `setup_env.sh`. A set name in
-`hpc/eval.sh` with no sample CSV is skipped with a message rather than failing the job, so it can
-be submitted before every model has been sampled. Both routes do the same work per set: the
-metrics, ESMFold, and figures of the first five structures.
+Training needs no setup beyond `uv sync`; it is folding that needs `setup_env.sh`. `hpc/eval.sh`
+scores the one CSV its `--samples` names, so edit that line and submit it again for each set you
+want - your own samples and the two controls from `eval/make_controls.py`. `run_eval.sh` does the
+same work interactively, and adds figures of the first five structures; in `eval.sh` that line is
+there too, commented out.
 
 Queue, walltime and memory are the `#BSUB` lines at the top of each script rather than
 command-line options. Run `bqueues` to see which GPU queues exist; every Nvidia queue works,
 because torch on Linux is the CUDA 12.6 build (the PyPI build uses CUDA 13, which has no kernels
 for V100s). Each job log starts with the GPU it got.
 
-The one case those scripts cannot cover is `uv` run by hand, outside them: `source hpc/env.sh`
-first, or uv fills `~/.cache/uv` in your home quota again.
+### Where the big files go
+
+Two things here are far too big for the 30 GB home directory, so neither is kept in it:
+
+| | How big | Where it goes | What puts it there |
+|---|---|---|---|
+| the ESMFold weights | 8 GB | `$BLACKHOLE/huggingface` | `src/protgen/metrics/fold.py`, from inside Python |
+| uv's package cache | several GB | `$BLACKHOLE/uv` | `hpc/env.sh`, sourced by the scripts in `hpc/` |
+
+`bash hpc/setup_env.sh` fills both, once, and every later run reads them. To see where the weights
+actually are:
+
+```bash
+uv run python -c "from protgen.metrics.fold import HF_CACHE; print(HF_CACHE)"
+```
+
+The weights are the half that needs nothing remembered. ESMFold is the only model this project
+downloads, so `fold.py` names the directory itself and passes it to Hugging Face, instead of
+relying on `HF_HOME` being exported first. Folding therefore lands in the same cache whether it
+was started by `hpc/eval.sh`, by `eval.py` in an interactive GPU session or by a notebook.
+Setting `HF_HOME` yourself still overrides it.
+
+uv's cache is the half that does: uv runs before any Python of ours can, so `uv` by hand, outside
+these scripts, needs `source hpc/env.sh` first - otherwise it fills `~/.cache/uv` in your home
+quota again.
+
+If a run ever downloads those 8 GB a second time, the cache went somewhere else: print the path
+above, and check that `echo $BLACKHOLE` is not empty (in a batch job it can be, if the job did not
+inherit your login environment - the scripts say so when it happens). Should a copy have ended up
+in your home directory already, `du -sh ~/.cache/huggingface` is how much quota deleting it gives
+back.
 
 
 **The sequence metrics need no GPU**, so only folding has to come here at all:
@@ -274,7 +304,7 @@ Folding a full sample set is the opposite case - long, memory-hungry and unatten
 belongs in a batch job:
 
 ```bash
-bsub < hpc/eval.sh      # every set listed at the top of the file
+bsub < hpc/eval.sh      # the set that its --samples line names
 bjobs                   # follow it; logs in hpc/logs/
 ```
 
