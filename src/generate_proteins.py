@@ -1,3 +1,4 @@
+import time
 import torch.nn.functional as F
 import torch
 from torch import nn
@@ -5,16 +6,23 @@ from torch import nn
 from protgen.data.make_data import AMINO_ACIDS, VOCABULARY, VOCABULARY_SIZE
 from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 
+#AMOUNT OF SEQUENCES TO GENERATE
+NR_OF_SEQUENCES = 20
+stamp = time.time()
 
 def main():
     model = MultiLayerPerceptron().to("cpu")
-    weights = torch.load("mlp1794165016.2621043.pt", weights_only=True)
+    weights = torch.load("mlp1794234207.800168.pt", weights_only=True)
     model.load_state_dict(weights)
     model.eval()
+    
 
-    for _ in range(20):
+    for _ in range(NR_OF_SEQUENCES):
         protein = generate_protein(model)
-        print(protein) # obviously dont do this manually forever
+        with open(f"gen_prot_seq_{stamp}.gen", "a") as f:
+            f.write(protein + "\n")
+        print(protein)
+        
 
 
 def generate_protein(model: nn.Module):

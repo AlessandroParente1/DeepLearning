@@ -8,6 +8,8 @@ __pycache__/
 
 # PyTorch weights
 *.pt
+# Generated sequences
+*.gen
 
 # Distribution / packaging
 .Python

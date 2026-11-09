@@ -188,3 +188,4 @@ def fold(records, pdb_dir, *, device=None, max_tokens=DEFAULT_MAX_TOKENS,
         if log:
             log(f"  folded {len(rows)}/{len(records)}  ({time.time() - start:.0f}s)")
     return rows
+
