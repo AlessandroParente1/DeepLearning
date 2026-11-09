@@ -8,7 +8,7 @@ from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 
 def main():
     model = MultiLayerPerceptron().to("cuda")
-    weights = torch.load("mlp1794165016.2621043.pt", weights_only=True)
+    weights = torch.load("mlp1794233382.6086056.pt", weights_only=True)
     model.load_state_dict(weights)
     model.eval()
 
