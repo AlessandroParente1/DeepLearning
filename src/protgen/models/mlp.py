@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from protgen import data
 
-CONTEXT_SIZE = 3
+CONTEXT_SIZE = 32
 HIDDEN_LAYER_SIZE = 128 # picked some number higher than input dimension and lower than 23^context*_size, maybe use two layers who knows
 
 class MultiLayerPerceptron(nn.Module):
@@ -10,8 +10,10 @@ class MultiLayerPerceptron(nn.Module):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
-            # adding + 1 input slot later to include index position
+            # adding + 1 input slot to include index position
             nn.Linear(CONTEXT_SIZE * data.VOCABULARY_SIZE, HIDDEN_LAYER_SIZE), 
+            nn.ReLU(),
+            nn.Linear(HIDDEN_LAYER_SIZE, HIDDEN_LAYER_SIZE), 
             nn.ReLU(),
             nn.Linear(HIDDEN_LAYER_SIZE, data.VOCABULARY_SIZE),
         )

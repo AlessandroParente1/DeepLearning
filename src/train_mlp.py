@@ -18,9 +18,9 @@ def main():
     val_data = ProteinDataset(path_to_data="data/val.csv")
     test_data = ProteinDataset(path_to_data="data/test.csv")
 
-    BATCH_SIZE = 32
+    BATCH_SIZE = 16
     MAX_EPOCHS = 1000
-    PATIENCE = 5
+    PATIENCE = 20
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
