@@ -7,6 +7,7 @@ MODEL_DIMENSIONS = 512
 ATTENTION_HEADS_PER_BLOCK = 8
 NUMBER_OF_BLOCKS = 6
 HIDDEN_LAYER_SIZE = 2048
+DROPOUT = 0.3
 
 
 class Transformer(nn.Module):
@@ -18,6 +19,7 @@ class Transformer(nn.Module):
         # position_embedding is a trained lookup table indexed by token position (e.g. index 5)
         self.token_embedding = nn.Embedding(data.VOCABULARY_SIZE, MODEL_DIMENSIONS)
         self.position_embedding = nn.Embedding(data.MAX_DATA_LENGTH, MODEL_DIMENSIONS)
+        self.embedding_dropout = nn.Dropout(DROPOUT)
 
         # .blocks is not some special pytorch field, it's a regular old custom field
         self.blocks = nn.ModuleList([TransformerBlock() for _ in range(NUMBER_OF_BLOCKS)])
@@ -41,6 +43,7 @@ class Transformer(nn.Module):
 
         # we look up the MODEL_DIMENSION-sized embeddings and sum them, that's our input, plain and simple
         embedded_input = self.token_embedding(input_tokens) + self.position_embedding(positions)
+        embedded_input = self.embedding_dropout(embedded_input)
 
         # mask values are 0 or -inf, so that we can add them and make softmax ignore us (remember e^-inf=0)
         mask = nn.Transformer.generate_square_subsequent_mask(input_length, device=input_tokens.device)
@@ -70,6 +73,7 @@ class TransformerBlock(nn.Module):
             nn.Linear(MODEL_DIMENSIONS, HIDDEN_LAYER_SIZE), 
             nn.ReLU(),
             nn.Linear(HIDDEN_LAYER_SIZE, MODEL_DIMENSIONS),
+            nn.Dropout(DROPOUT),
         )
 
 
