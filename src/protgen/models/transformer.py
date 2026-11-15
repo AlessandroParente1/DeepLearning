@@ -65,7 +65,8 @@ class TransformerBlock(nn.Module):
 
         # all we need :)
         self.attention_norm = nn.LayerNorm(MODEL_DIMENSIONS) # note that pre-norm is different from the 2017 paper but kind of just better and what we use now
-        self.attention = nn.MultiheadAttention(MODEL_DIMENSIONS, ATTENTION_HEADS_PER_BLOCK, batch_first=True) # batch_first because our dimensions are BATCH_SIZE x TOKENS not the other way around
+        self.attention = nn.MultiheadAttention(MODEL_DIMENSIONS, ATTENTION_HEADS_PER_BLOCK, dropout=DROPOUT, batch_first=True) # batch_first because our dimensions are BATCH_SIZE x TOKENS not the other way around
+        self.attention_dropout = nn.Dropout(DROPOUT)
 
         # okay i guess we need this too
         self.feed_forward_norm = nn.LayerNorm(MODEL_DIMENSIONS)
@@ -86,7 +87,7 @@ class TransformerBlock(nn.Module):
         # the _ we are discarding here is where the weights would be returned if we didn't pass in "need_weights=False"
         # query, key, and value are all computed from the input, (with their learned weights of course), that's why we pass in normalized_input three times
         attention_result, _ = self.attention(normalized_input, normalized_input, normalized_input, attn_mask=mask, need_weights=False)
-        input_with_attention_result = input + attention_result
+        input_with_attention_result = input + self.attention_dropout(attention_result)
 
         normalized_attended_input = self.feed_forward_norm(input_with_attention_result)
         reflection_result = self.feed_forward(normalized_attended_input)
