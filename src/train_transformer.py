@@ -27,9 +27,9 @@ def main():
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
 
-    # originally from https://arxiv.org/abs/1711.05101 -- quite common now
+    # AdamW originally from https://arxiv.org/abs/1711.05101 -- quite common now
     # note that the original 2017 paper used plain adam
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.0003, weight_decay=0.1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0003)
 
     best_validation_loss = float("inf")
     best_model_state_dict = None

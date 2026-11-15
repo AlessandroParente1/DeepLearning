@@ -3,16 +3,10 @@ from torch import nn
 from protgen import data
 
 # just using values close to the defaults of https://docs.pytorch.org/docs/2.15/generated/torch.nn.Transformer.html
-#MODEL_DIMENSIONS = 512
-#ATTENTION_HEADS_PER_BLOCK = 8
-#NUMBER_OF_BLOCKS = 6
-#HIDDEN_LAYER_SIZE = 2048
-
-MODEL_DIMENSIONS = 64
-ATTENTION_HEADS_PER_BLOCK = 2
-NUMBER_OF_BLOCKS = 2
-HIDDEN_LAYER_SIZE = 256
-
+MODEL_DIMENSIONS = 512
+ATTENTION_HEADS_PER_BLOCK = 8
+NUMBER_OF_BLOCKS = 6
+HIDDEN_LAYER_SIZE = 2048
 
 
 class Transformer(nn.Module):
