@@ -7,7 +7,7 @@ from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 from protgen.models.transformer import Transformer
 
 
-TEMPERATURE = 2
+TEMPERATURE = 0.5
 
 
 def main():
