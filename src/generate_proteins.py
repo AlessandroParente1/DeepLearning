@@ -6,7 +6,7 @@ from protgen.data.make_data import AMINO_ACIDS, MAX_DATA_LENGTH, VOCABULARY, VOC
 from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 from protgen.models.transformer import Transformer
 
-
+# leave at 1 for neutral
 TEMPERATURE = 1
 
 
