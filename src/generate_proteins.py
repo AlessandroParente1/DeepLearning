@@ -2,6 +2,7 @@ import time
 import torch.nn.functional as F
 import torch
 from torch import nn
+import pandas as pd
 
 from protgen.data.make_data import AMINO_ACIDS, VOCABULARY, VOCABULARY_SIZE
 from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
@@ -9,20 +10,24 @@ from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 #AMOUNT OF SEQUENCES TO GENERATE
 NR_OF_SEQUENCES = 20
 stamp = time.time()
+list_of_sequences = []
 
 def main():
     model = MultiLayerPerceptron().to("cpu")
-    weights = torch.load("mlp1794234207.800168.pt", weights_only=True)
+    weights = torch.load("mlp1794165016.2621043.pt", weights_only=True)
     model.load_state_dict(weights)
     model.eval()
     
 
     for _ in range(NR_OF_SEQUENCES):
         protein = generate_protein(model)
+        list_of_sequences.append(protein)
         with open(f"gen_prot_seq_{stamp}.gen", "a") as f:
             f.write(protein + "\n")
         print(protein)
-        
+    df = pd.DataFrame(list_of_sequences, columns=["sequence"])
+    df.to_csv(f"results/sequences/test_gen_prot_{stamp}.csv", index=False)
+
 
 
 def generate_protein(model: nn.Module):
@@ -62,3 +67,5 @@ def generate_protein(model: nn.Module):
 
 if __name__ == "__main__":
     main()
+ 
+

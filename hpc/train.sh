@@ -15,9 +15,10 @@
 ##BSUB -B
 ##BSUB -N
 
-set -eu
-cd "$(dirname "$0")/.."
+
 source hpc/env.sh   # uv on the PATH, caches off the home quota
+
+uv run python src/train_mlp.py
 
 # Your training command, e.g.:
 # uv run python train.py
