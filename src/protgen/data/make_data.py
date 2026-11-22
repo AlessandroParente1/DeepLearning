@@ -6,7 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 FAMILIES = ("AcyP", "HPr", "HU")
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
 SPECIAL_TOKENS = ["<PAD>", "<BOS>", "<EOS>"]
-ALL_TOKENS = list(SPECIAL_TOKENS) + list(AMINO_ACIDS)
+ALL_TOKENS = list(SPECIAL_TOKENS) + list(AMINO_ACIDS) + list(FAMILIES)
 IGNORE_INDEX = -1  # what F.cross_entropy(ignore_index=...) must be given for the generative task
 
 VOCABULARY = dict(zip(ALL_TOKENS, range(len(ALL_TOKENS))))
