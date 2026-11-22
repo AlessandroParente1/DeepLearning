@@ -18,7 +18,7 @@ class Transformer(nn.Module):
         # token_embedding is a trained lookup table indexed by token identity (e.g. value "K")
         # position_embedding is a trained lookup table indexed by token position (e.g. index 5)
         self.token_embedding = nn.Embedding(data.VOCABULARY_SIZE, MODEL_DIMENSIONS)
-        self.position_embedding = nn.Embedding(data.MAX_DATA_LENGTH, MODEL_DIMENSIONS)
+        self.position_embedding = nn.Embedding(data.MAX_DATA_LENGTH + 1, MODEL_DIMENSIONS) # + 1 since we're prepending up to one token without adjusting max length
         self.embedding_dropout = nn.Dropout(DROPOUT)
 
         # .blocks is not some special pytorch field, it's a regular old custom field

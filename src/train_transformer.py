@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch import Tensor, nn
 from torch.optim import Optimizer
 
-from protgen.data.make_data import IGNORE_INDEX, VOCABULARY, VOCABULARY_SIZE, ProteinDataset
+from protgen.data.make_data import FAMILIES, IGNORE_INDEX, VOCABULARY, VOCABULARY_SIZE, ProteinDataset
 from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 from torch.utils.data import DataLoader
 
@@ -65,6 +65,14 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
 
     for i, data in enumerate(data_loader):
         x, x_shifted, y, length = (t.to("cuda") for t in data) # figure out a better way to keep things tied to device
+
+        # prepend the family to input
+        family_token_as_tensor = (y + VOCABULARY[FAMILIES[0]]).unsqueeze(1) # relying on horrible index arithmetic in ALL_TOKENS, not changing because cba
+        x = torch.cat([family_token_as_tensor, x], dim=1)    
+
+        # prepend column of ignore to output
+        ignore = torch.full_like(family_token_as_tensor, IGNORE_INDEX)
+        x_shifted = torch.cat([ignore, x_shifted], dim=1)
         
         optimizer.zero_grad()
         logits = model(x)
@@ -95,6 +103,14 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
 
     for i, data in enumerate(data_loader):
             x, x_shifted, y, length = (t.to("cuda") for t in data)
+        
+            # prepend the family to input
+            family_token_as_tensor = (y + VOCABULARY[FAMILIES[0]]).unsqueeze(1) # relying on horrible index arithmetic in ALL_TOKENS, not changing because cba
+            x = torch.cat([family_token_as_tensor, x], dim=1)    
+
+            # prepend column of ignore to output
+            ignore = torch.full_like(family_token_as_tensor, IGNORE_INDEX)
+            x_shifted = torch.cat([ignore, x_shifted], dim=1)
     
             logits = model(x)
             
