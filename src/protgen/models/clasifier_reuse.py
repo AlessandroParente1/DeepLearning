@@ -34,9 +34,9 @@ class Transformer_Classifier(nn.Module):
         
         #FOR CLASIFIER OUTPUT
         self.classifier_head = nn.Sequential(
-        nn.Linear(MODEL_DIMENSIONS, HEAD_HIDDEN_SIZE),
-        nn.ReLU(),
-        nn.Linear(HEAD_HIDDEN_SIZE, len(data.FAMILIES))
+            nn.Linear(MODEL_DIMENSIONS, HEAD_HIDDEN_SIZE),
+            nn.ReLU(),
+            nn.Linear(HEAD_HIDDEN_SIZE, len(data.FAMILIES))
         )
     
 
@@ -80,26 +80,26 @@ class Transformer_Classifier(nn.Module):
 
         #return logits
 
-    def forward_classifier(self, input_tokens, lengths):
+    def forward_classifier(self, input_tokens):
 
         normalized_output = self.forward_transformer_backbone(input_tokens)
 
         #CLASIFIER OUTPUT HEAD:
         # Take representation of end of sequence position
-        eos_positions = lengths + 1
+        #eos_positions = lengths + 1
 
-        batch_indices = torch.arange(input_tokens.shape[0], device=input_tokens.device)
-        last_hidden = normalized_output[batch_indices, eos_positions, :]
+        #batch_indices = torch.arange(input_tokens.shape[0], device=input_tokens.device)
+        #last_hidden = normalized_output[batch_indices, eos_positions, :]
 
         
         # Predict three classes
-        class_logits = self.classifier_head(last_hidden)
+        class_logits = self.classifier_head(normalized_output)
 
         return class_logits
 
-    def forward(self, input_tokens, lengths):
+    def forward(self, input_tokens):
 
-        return self.forward_classifier(input_tokens, lengths)
+        return self.forward_classifier(input_tokens)
 
 
     #since two diferent outputs are implemented to make it more clear:
