@@ -5,13 +5,13 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from protgen.data.make_data_classifier import VOCABULARY, VOCABULARY_SIZE, ProteinPrefixDataset
+from protgen.data.make_data import VOCABULARY, VOCABULARY_SIZE, ProteinDataset
 
 from protgen.models.clasifier_reuse import Transformer_Classifier
 from protgen.models.transformer import Transformer
 
-path_to_weights = "transformer_weights_for_classifier_1795441599.982232.pt"
-LEARNING_RATE = 0.003
+path_to_weights = "transformer_1dot5one_weights_1794778911.2550974.pt"
+LEARNING_RATE = 0.0003
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # for plotting loss curves 
@@ -59,9 +59,9 @@ def main():
     # We still need to train te last layer - the head of the clasifier:
 
     #this returns x, x_shifted, label, lenght, we will not need x_shifted.
-    train_data = ProteinPrefixDataset(path_to_data="data/train.csv")
-    val_data = ProteinPrefixDataset(path_to_data="data/val.csv")
-    test_data = ProteinPrefixDataset(path_to_data="data/test.csv")
+    train_data = ProteinDataset(path_to_data="data/train.csv")
+    val_data = ProteinDataset(path_to_data="data/val.csv")
+    test_data = ProteinDataset(path_to_data="data/test.csv")
 
     BATCH_SIZE = 32
     MAX_EPOCHS = 1000
@@ -127,7 +127,9 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
 
     for i, data in enumerate(data_loader):
 
-        x, y, length = data 
+        print(f"batch {i} of {len(data_loader)}")
+
+        x, x_shifted, y, length = data 
         x = x.to(device)
         y = y.to(device)
         length = length.to(device)
@@ -163,7 +165,7 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
 
     for i, data in enumerate(data_loader):
 
-        x, y, length = data 
+        x, x_shifted, y, length = data 
         x = x.to(device)
         y = y.to(device)
         length = length.to(device)
