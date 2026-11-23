@@ -20,7 +20,7 @@ results = {
     "training_loss": []
 }
 
-LEARNING_RATE = 0.003
+LEARNING_RATE = 0.0003
 
 def main():
     model = Transformer().to("cuda")
@@ -66,7 +66,7 @@ def main():
     model.load_state_dict(best_model_state_dict)
     test_loss = evaluate(model, test_loader)
     print(f"test loss: {test_loss:.4f}")
-    torch.save(model.state_dict(), f"transformer_weights_{time.time()}.pt")
+    torch.save(model.state_dict(), f"transformer_weights_for_classifier_{time.time()}.pt")
     
 
 # https://docs.pytorch.org/tutorials/beginner/introyt/trainingyt.html
@@ -145,3 +145,28 @@ plt.plot([], [], " ", label=f"Batch size: {batch_size}")
 plt.title("Training and Validation Loss Curves for Transformer Model")
 plt.legend()
 plt.show()
+
+"""
+epoch 1: training loss 2.1090,  validation loss 1.9847
+epoch 2: training loss 1.6919,  validation loss 1.8510
+epoch 3: training loss 1.5592,  validation loss 1.7545
+epoch 4: training loss 1.4776,  validation loss 1.6957
+epoch 5: training loss 1.4186,  validation loss 1.6702
+epoch 6: training loss 1.3702,  validation loss 1.6631
+epoch 7: training loss 1.3308,  validation loss 1.6357
+epoch 8: training loss 1.2971,  validation loss 1.6189
+epoch 9: training loss 1.2655,  validation loss 1.5827
+epoch 10: training loss 1.2381,  validation loss 1.5794
+epoch 11: training loss 1.2121,  validation loss 1.5892
+epoch 12: training loss 1.1902,  validation loss 1.5455
+epoch 13: training loss 1.1686,  validation loss 1.5829
+epoch 14: training loss 1.1473,  validation loss 1.5058
+epoch 15: training loss 1.1294,  validation loss 1.5270
+epoch 16: training loss 1.1123,  validation loss 1.5412
+epoch 17: training loss 1.0947,  validation loss 1.5223
+epoch 18: training loss 1.0792,  validation loss 1.5295
+epoch 19: training loss 1.0631,  validation loss 1.5263
+epoch 20: training loss 1.0497,  validation loss 1.5240
+Stopping after 20 epochs.
+test loss: 1.5286
+"""

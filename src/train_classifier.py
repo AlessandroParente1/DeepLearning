@@ -10,7 +10,7 @@ from protgen.data.make_data_classifier import VOCABULARY, VOCABULARY_SIZE, Prote
 from protgen.models.clasifier_reuse import Transformer_Classifier
 from protgen.models.transformer import Transformer
 
-path_to_weights = "../transfomer_1dot5....pt"
+path_to_weights = "transformer_weights_for_classifier_1795441599.982232.pt"
 LEARNING_RATE = 0.003
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
