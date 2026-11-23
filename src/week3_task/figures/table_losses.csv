@@ -1,0 +1,8 @@
+model,val_loss,test_loss,parameters
+Uniform guess (21 tokens),3.0445,3.0445,0
+"MLP, context 3",2.3597,2.3534,11927
+"MLP, context 32",1.6639,1.6521,113815
+Transformer small_a,1.6607,1.6857,419223
+Transformer small_b,1.5024,1.5095,3204375
+Transformer big,1.5132,1.5089,19000000
+Transformer small_b + label,1.5193861974951328,1.532943346066674,3205399

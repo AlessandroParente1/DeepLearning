@@ -1,0 +1,6 @@
+set,setting,n,frac_valid,frac_unique,nearest_identity_median,mean_plddt
+MLP ctx 3,mlp_data_01_sample,40.0,1.0,1.0,0.2448979591836734,48.06292033195496
+MLP ctx 32 (inferred),mlp_data_02_sample,40.0,1.0,1.0,0.3100027089259108,58.86606636047363
+Transformer T=1,transformer_data_01_sample,40.0,1.0,1.0,0.7868490205446728,87.00233354568482
+Transformer T=2,transformer_data_02_temperature_sample,20.0,1.0,1.0,0.2658382066276803,48.62290554046631
+Transformer T=0.5,transformer_data_03_templow_samples,40.0,1.0,0.975,0.937391304347826,90.5626377105713
