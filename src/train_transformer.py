@@ -20,6 +20,8 @@ results = {
     "training_loss": []
 }
 
+LEARNING_RATE = 0.003
+
 def main():
     model = Transformer().to("cuda")
 
@@ -36,7 +38,7 @@ def main():
 
     # AdamW originally from https://arxiv.org/abs/1711.05101 -- quite common now
     # note that the original 2017 paper used plain adam
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0003)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     best_validation_loss = float("inf")
     best_model_state_dict = None
@@ -126,7 +128,7 @@ if __name__ == "__main__":
     #Plotting loss curves
 import matplotlib.pyplot as plt
 
-Learning_rate = 0.001
+Learning_rate = LEARNING_RATE
 optimizer = "Adam"
 batch_size = 32
 

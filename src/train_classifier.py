@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from protgen.data.make_data import IGNORE_INDEX, VOCABULARY, VOCABULARY_SIZE, ProteinDataset
+from protgen.data.make_data_classifier import VOCABULARY, VOCABULARY_SIZE, ProteinPrefixDataset
 
 from protgen.models.clasifier_reuse import Transformer_Classifier
 from protgen.models.transformer import Transformer
@@ -59,14 +59,14 @@ def main():
     # We still need to train te last layer - the head of the clasifier:
 
     #this returns x, x_shifted, label, lenght, we will not need x_shifted.
-    train_data = ProteinDataset(path_to_data="data/train.csv")
-    val_data = ProteinDataset(path_to_data="data/val.csv")
-    test_data = ProteinDataset(path_to_data="data/test.csv")
+    train_data = ProteinPrefixDataset(path_to_data="data/train.csv")
+    val_data = ProteinPrefixDataset(path_to_data="data/val.csv")
+    test_data = ProteinPrefixDataset(path_to_data="data/test.csv")
 
     BATCH_SIZE = 32
     MAX_EPOCHS = 1000
     PATIENCE = 5
-    #also data_loader returns x, x_shifted, labels, lengths needs unpacking!
+    #also data_loader returns x, labels, lengths needs unpacking!
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
@@ -109,7 +109,7 @@ def main():
     model.load_state_dict(best_model_state_dict)
     test_loss = evaluate(model, test_loader)
     print(f"test loss: {test_loss:.4f}")
-    #I do not really need the classifier weights for anything?
+    #I do not really need the classifier weights for anything or do i?
     torch.save(model.state_dict(), f"classifier_weights_{time.time()}.pt")
     
 
@@ -127,7 +127,7 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
 
     for i, data in enumerate(data_loader):
 
-        x, _, y, length = data 
+        x, y, length = data 
         x = x.to(device)
         y = y.to(device)
         length = length.to(device)
@@ -163,7 +163,7 @@ def evaluate(model: nn.Module, data_loader: DataLoader):
 
     for i, data in enumerate(data_loader):
 
-        x, _, y, length = data 
+        x, y, length = data 
         x = x.to(device)
         y = y.to(device)
         length = length.to(device)
@@ -192,7 +192,7 @@ if __name__ == "__main__":
 #Plotting loss curves
 import matplotlib.pyplot as plt
 
-Learning_rate = 0.001
+Learning_rate = LEARNING_RATE
 optimizer = "Adam"
 batch_size = 32
 
@@ -209,3 +209,6 @@ plt.plot([], [], " ", label=f"Batch size: {batch_size}")
 plt.title("Training and Validation Loss Curves for Clasifier Model")
 plt.legend()
 plt.show()
+
+
+
