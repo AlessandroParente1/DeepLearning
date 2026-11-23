@@ -33,9 +33,7 @@ class Transformer(nn.Module):
     # here input_tokens is a BATCH_SIZE x SOME_LENGTH tensor of tokens
     def forward(self, input_tokens):
         # should work just fine with other lengths (between 1 and MAX_DATA_LENGTH inclusive)
-        # just asserting here for now to catch bugs as i write this, remove for generating
         input_length = input_tokens.shape[1]
-        assert input_length == data.MAX_DATA_LENGTH
 
         # this is an "array_range" not the word "arrange"...
         # 0..length exclusive

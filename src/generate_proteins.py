@@ -6,6 +6,9 @@ from protgen.data.make_data import AMINO_ACIDS, MAX_DATA_LENGTH, VOCABULARY, VOC
 from protgen.models.mlp import CONTEXT_SIZE, MultiLayerPerceptron
 from protgen.models.transformer import Transformer
 
+# leave at 1 for neutral
+TEMPERATURE = 1
+
 
 def main():
     model = Transformer().to("cuda")
@@ -69,10 +72,12 @@ def generate_unformatted_input_protein(model: nn.Module):
 
     protein = []
     # position 0 is <BOS>, so there's room for MAX_DATA_LENGTH - 2 residues (the longest training protein)
-    for position in range(MAX_DATA_LENGTH - 2):
+    # multiplying by 2 rn while experimenting with some temperature that im okay going too far
+    for position in range((MAX_DATA_LENGTH - 2) * 2):
         logits = model(tokens)[0, position] # the prediction for the token right after `position`
         logits[never_sampled] = float("-inf")
-        probabilities = logits.softmax(dim=-1)
+        probabilities = torch.softmax(logits / TEMPERATURE,dim=-1)
+
 
         next_token_index = torch.multinomial(probabilities, num_samples=1).item()
         if next_token_index == VOCABULARY["<EOS>"]:
