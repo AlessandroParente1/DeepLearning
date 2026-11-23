@@ -9,6 +9,8 @@ NUMBER_OF_BLOCKS = 6
 HIDDEN_LAYER_SIZE = 2048
 DROPOUT = 0.3
 
+HEAD_HIDDEN_SIZE = 256
+
 
 class Transformer_Classifier(nn.Module):
     def __init__(self):
@@ -31,7 +33,12 @@ class Transformer_Classifier(nn.Module):
         #self.to_logits = nn.Linear(MODEL_DIMENSIONS, data.VOCABULARY_SIZE)
         
         #FOR CLASIFIER OUTPUT
-        self.classifier_head = nn.Linear(MODEL_DIMENSIONS, 3)
+        self.classifier_head = nn.Sequential(
+        nn.Linear(MODEL_DIMENSIONS, HEAD_HIDDEN_SIZE),
+        nn.ReLU(),
+        nn.Linear(HEAD_HIDDEN_SIZE, len(data.FAMILIES))
+        )
+    
 
 
     # here input_tokens is a BATCH_SIZE x SOME_LENGTH tensor of tokens
