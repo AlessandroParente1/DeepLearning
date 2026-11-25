@@ -16,11 +16,11 @@ TEMPERATURE = 1
 # this modifies probability distribution differently from just changing temperature
 # temperature makes likely things more or less likely (sharpen/flatten or w.e., basically it zooms in but doesn't change rank)
 # example: if unguided says 10% 90% and guided says 15% 85% then scaling this up above 1 can get us to 60% 40% which temperature can never
-W_CFG_LERP = 1.5 # i think we're gonna use 1.5 as the default value for "oh look we are CFG'ing hard right now" but ofc do tests
+W_CFG_LERP = 5.5 # i think we're gonna use 1.5 as the default value for "oh look we are CFG'ing hard right now" but ofc do tests
 
 def main():
     model = Transformer().to("cuda")
-    weights = torch.load("transformer_weights_1795377741.4822052.pt", weights_only=True)
+    weights = torch.load("transformer_weights_1795566966.8128662.pt", weights_only=True)
     model.load_state_dict(weights)
     model.eval()
 
@@ -93,6 +93,18 @@ def generate_guided_protein(model: nn.Module, family: str, w: float):
         # w from 0 to 1 lerps unguided to guided
         # less than 0 or more than 1 extrapolates in that direction
         logits = unconditional + w * (conditional - unconditional)
+
+        INVALID_OUTPUT_TOKENS = [
+            VOCABULARY["<PAD>"], 
+            VOCABULARY["<BOS>"], 
+            VOCABULARY["<EOS>"], 
+            VOCABULARY["<NO_FAMILY>"], 
+            VOCABULARY["AcyP"], 
+            VOCABULARY["HPr"], 
+            VOCABULARY["HU"]
+        ]
+        logits[INVALID_OUTPUT_TOKENS] = -float("inf")
+        
         probabilities = torch.softmax(logits / TEMPERATURE, dim=-1)
 
         next_token_index = torch.multinomial(probabilities, num_samples=1).item()
