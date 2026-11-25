@@ -97,7 +97,6 @@ def generate_guided_protein(model: nn.Module, family: str, w: float):
         INVALID_OUTPUT_TOKENS = [
             VOCABULARY["<PAD>"], 
             VOCABULARY["<BOS>"], 
-            VOCABULARY["<EOS>"], 
             VOCABULARY["<NO_FAMILY>"], 
             VOCABULARY["AcyP"], 
             VOCABULARY["HPr"], 
