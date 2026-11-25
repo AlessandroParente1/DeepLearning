@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 # Constants for the dataset and model
 FAMILIES = ("AcyP", "HPr", "HU")
 AMINO_ACIDS = "ACDEFGHIKLMNPQRSTVWY"
-SPECIAL_TOKENS = ["<PAD>", "<BOS>", "<EOS>"]
+SPECIAL_TOKENS = ["<PAD>", "<BOS>", "<EOS>", "<NO_FAMILY>"]
 ALL_TOKENS = list(SPECIAL_TOKENS) + list(AMINO_ACIDS) + list(FAMILIES)
 IGNORE_INDEX = -1  # what F.cross_entropy(ignore_index=...) must be given for the generative task
 

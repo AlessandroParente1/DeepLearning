@@ -67,8 +67,16 @@ def train_one_epoch(model: nn.Module, data_loader: DataLoader, optimizer: Optimi
         x, x_shifted, y, length = (t.to("cuda") for t in data) # figure out a better way to keep things tied to device
 
         # prepend the family to input
+        # while making sure we dropout label :D
+        # dont add dropout to eval !!
         family_token_as_tensor = (y + VOCABULARY[FAMILIES[0]]).unsqueeze(1) # relying on horrible index arithmetic in ALL_TOKENS, not changing because cba
+        
+        LABEL_DROPOUT = 0.15
+        drop_label_tensor = torch.rand(y.shape, device=y.device) < LABEL_DROPOUT
+        family_token_as_tensor[drop_label_tensor] = VOCABULARY["<NO_FAMILY>"]
+
         x = torch.cat([family_token_as_tensor, x], dim=1)    
+
 
         # prepend column of ignore to output
         ignore = torch.full_like(family_token_as_tensor, IGNORE_INDEX)
