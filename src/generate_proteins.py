@@ -9,6 +9,14 @@ from protgen.models.transformer import Transformer
 # leave at 1 for neutral
 TEMPERATURE = 0.5
 
+# 0 is unguided
+# 1 is entirely conditional (only the guided portion has any say)
+# <0 and >1 extrapolates
+#
+# this modifies probability distribution differently from just changing temperature
+# temperature makes likely things more or less likely (sharpen/flatten or w.e., basically it zooms in but doesn't change rank)
+# example: if unguided says 10% 90% and guided says 15% 85% then scaling this up above 1 can get us to 60% 40% which temperature can never
+W_CFG_LERP = 1
 
 def main():
     model = Transformer().to("cuda")
@@ -18,7 +26,7 @@ def main():
 
     for family in FAMILIES:
         for _ in range(20):
-            protein = generate_guided_protein(model, family)
+            protein = generate_guided_protein(model, family, W_CFG_LERP)
             print(protein) # obviously dont do this manually forever
 
 @torch.no_grad()
@@ -57,25 +65,42 @@ def generate_protein(model: nn.Module):
     return "".join(protein)
 
 @torch.no_grad()
-def generate_guided_protein(model: nn.Module, family: str):
+def generate_conditional_protein(model: nn.Module, family: str):
+    return generate_guided_protein(model, family, w=1)
+
+@torch.no_grad()
+def generate_unguided_protein(model: nn.Module, family: str):
+    return generate_guided_protein(model, family, w=0)
+
+@torch.no_grad()
+def generate_guided_protein(model: nn.Module, family: str, w: float):
 
     index_to_token = {i: t for t, i in VOCABULARY.items()}
-    
-    tokens = torch.full((1, MAX_DATA_LENGTH), VOCABULARY["<PAD>"], device="cuda")
+
+    # setting up two sequences, index 0 will be with family token, index 1 will be without
+    tokens = torch.full((2, MAX_DATA_LENGTH), VOCABULARY["<PAD>"], device="cuda")
     tokens[0, 0] = VOCABULARY[family]
-    tokens[0, 1] = VOCABULARY["<BOS>"]
+    tokens[1, 0] = VOCABULARY["<NO_FAMILY>"]
+    tokens[:, 1] = VOCABULARY["<BOS>"]
 
     protein = []
     for position in range(1, MAX_DATA_LENGTH - 1):
-        logits = model(tokens)[0, position] # the prediction for the token right after `position`
-        probabilities = torch.softmax(logits / TEMPERATURE,dim=-1)
+        
+        # both make their prediction
+        conditional, unconditional = model(tokens)[:, position].log_softmax(dim=-1)
+        
+        # we do our mathy math math algebra
+        # w from 0 to 1 lerps unguided to guided
+        # less than 0 or more than 1 extrapolates in that direction
+        logits = unconditional + w * (conditional - unconditional)
+        probabilities = torch.softmax(logits / TEMPERATURE, dim=-1)
 
         next_token_index = torch.multinomial(probabilities, num_samples=1).item()
         if next_token_index == VOCABULARY["<EOS>"]:
             break
 
         protein.append(index_to_token[next_token_index])
-        tokens[0, position + 1] = next_token_index
+        tokens[:, position + 1] = next_token_index
 
     return "".join(protein) 
 
