@@ -11,7 +11,7 @@ from protgen.models.clasifier_reuse import Transformer_Classifier
 # leave at 1 for neutral
 TEMPERATURE = 1
 TARGET_FAMILY = "HU"
-GUIDANCE_STRENGTH = 0.0
+GUIDANCE_STRENGTH = 3.0
 #AMOUNT OF SEQUENCES TO GENERATE
 NR_OF_SEQUENCES = 256
 
@@ -49,7 +49,7 @@ def main():
 
     df = pd.DataFrame({"sequence": sequences})
     df.to_csv(
-        f"results/sequences/guidance_0_gen_seq_HU_with_classifier.csv",
+        f"results/sequences/guidance_30_gen_seq_HU_with_classifier.csv",
         index=False
     )
 
