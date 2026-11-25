@@ -10,10 +10,10 @@ from protgen.models.clasifier_reuse import Transformer_Classifier
 
 # leave at 1 for neutral
 TEMPERATURE = 1
-TARGET_FAMILY = "AcyP"
+TARGET_FAMILY = "HU"
 GUIDANCE_STRENGTH = 1.0
 #AMOUNT OF SEQUENCES TO GENERATE
-NR_OF_SEQUENCES = 20
+NR_OF_SEQUENCES = 256
 
 
 def main():
