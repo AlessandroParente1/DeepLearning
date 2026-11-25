@@ -16,7 +16,7 @@ TEMPERATURE = 1
 # this modifies probability distribution differently from just changing temperature
 # temperature makes likely things more or less likely (sharpen/flatten or w.e., basically it zooms in but doesn't change rank)
 # example: if unguided says 10% 90% and guided says 15% 85% then scaling this up above 1 can get us to 60% 40% which temperature can never
-W_CFG_LERP = 5.5 # i think we're gonna use 1.5 as the default value for "oh look we are CFG'ing hard right now" but ofc do tests
+W_CFG_LERP = 1.5 # i think we're gonna use 1.5 as the default value for "oh look we are CFG'ing hard right now" but ofc do tests
 
 def main():
     model = Transformer().to("cuda")
