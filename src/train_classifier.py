@@ -10,8 +10,8 @@ from protgen.data.make_data import IGNORE_INDEX, VOCABULARY, VOCABULARY_SIZE, Pr
 from protgen.models.clasifier_reuse import Transformer_Classifier
 from protgen.models.transformer import Transformer
 
-path_to_weights = "transformer_weights_for_classifier_1795441599.982232.pt"
-LEARNING_RATE = 0.0003
+path_to_weights = "medium_transformer_weights_for_classifier_1795616108.3221195.pt"
+LEARNING_RATE = 0.0005
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # for plotting loss curves 
@@ -65,7 +65,7 @@ def main():
 
     BATCH_SIZE = 32
     MAX_EPOCHS = 1000
-    PATIENCE = 5
+    PATIENCE = 10
     #also data_loader returns x, labels, lengths needs unpacking!
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=BATCH_SIZE, shuffle=False)
@@ -73,7 +73,7 @@ def main():
 
     # AdamW originally from https://arxiv.org/abs/1711.05101 -- quite common now
     # note that the original 2017 paper used plain adam
-    optimizer = torch.optim.Adam(model.classifier_head.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.AdamW(model.classifier_head.parameters(), weight_decay = 0.1, lr=LEARNING_RATE)
     
 
     best_validation_loss = float("inf")
@@ -266,7 +266,7 @@ if __name__ == "__main__":
 import matplotlib.pyplot as plt
 
 Learning_rate = LEARNING_RATE
-optimizer = "Adam"
+optimizer = "AdamW"
 batch_size = 32
 
 plt.plot(results["Epoch_number"], results["training_loss"], label="Training Loss")
@@ -285,6 +285,8 @@ plt.show()
 
 
 """
+from transformer 512
+
 epoch 1: training loss 0.2132,  validation loss 0.1158
 epoch 2: training loss 0.1051,  validation loss 0.1041
 epoch 3: training loss 0.0920,  validation loss 0.1001
@@ -304,6 +306,48 @@ epoch 16: training loss 0.0675,  validation loss 0.0990
 epoch 17: training loss 0.0666,  validation loss 0.0957
 Stopping after 17 epochs.
 test loss: 0.1203
+
+from transformer 256
+
+epoch 1: training loss 0.2610,  validation loss 0.1149
+epoch 2: training loss 0.1138,  validation loss 0.1003
+epoch 3: training loss 0.0941,  validation loss 0.0964
+epoch 4: training loss 0.0860,  validation loss 0.0961
+epoch 5: training loss 0.0813,  validation loss 0.0939
+epoch 6: training loss 0.0782,  validation loss 0.0916
+epoch 7: training loss 0.0758,  validation loss 0.0899
+epoch 8: training loss 0.0741,  validation loss 0.0890
+epoch 9: training loss 0.0727,  validation loss 0.0892
+epoch 10: training loss 0.0714,  validation loss 0.0913
+epoch 11: training loss 0.0703,  validation loss 0.0888
+epoch 12: training loss 0.0691,  validation loss 0.0879
+epoch 13: training loss 0.0685,  validation loss 0.0887
+epoch 14: training loss 0.0676,  validation loss 0.0880
+epoch 15: training loss 0.0670,  validation loss 0.0876
+epoch 16: training loss 0.0665,  validation loss 0.0877
+epoch 17: training loss 0.0658,  validation loss 0.0885
+epoch 18: training loss 0.0653,  validation loss 0.0893
+epoch 19: training loss 0.0648,  validation loss 0.0894
+epoch 20: training loss 0.0643,  validation loss 0.0876
+epoch 21: training loss 0.0639,  validation loss 0.0887
+epoch 22: training loss 0.0637,  validation loss 0.0879
+epoch 23: training loss 0.0632,  validation loss 0.0880
+epoch 24: training loss 0.0629,  validation loss 0.0877
+epoch 25: training loss 0.0626,  validation loss 0.0876
+epoch 26: training loss 0.0623,  validation loss 0.0869
+epoch 27: training loss 0.0618,  validation loss 0.0881
+epoch 28: training loss 0.0618,  validation loss 0.0884
+epoch 29: training loss 0.0617,  validation loss 0.0905
+epoch 30: training loss 0.0613,  validation loss 0.0882
+epoch 31: training loss 0.0609,  validation loss 0.0892
+epoch 32: training loss 0.0608,  validation loss 0.0891
+epoch 33: training loss 0.0605,  validation loss 0.0898
+epoch 34: training loss 0.0603,  validation loss 0.0889
+epoch 35: training loss 0.0602,  validation loss 0.0881
+epoch 36: training loss 0.0599,  validation loss 0.0911
+Stopping after 36 epochs.
+test loss: 0.0906
+
 """
 
 

@@ -11,10 +11,11 @@ from protgen.models.clasifier_reuse import Transformer_Classifier
 # leave at 1 for neutral
 TEMPERATURE = 1
 TARGET_FAMILY = "HU"
-GUIDANCE_STRENGTH = 1.0
+GUIDANCE_STRENGTH = 0.0
 #AMOUNT OF SEQUENCES TO GENERATE
 NR_OF_SEQUENCES = 256
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def main():
 
@@ -22,14 +23,14 @@ def main():
 
 
     model = Transformer().to(device)
-    weights = torch.load("transformer_weights_for_classifier_1795441599.982232.pt", map_location = device, weights_only=True)
+    weights = torch.load("medium_transformer_weights_for_classifier_1795616108.3221195.pt", map_location = device, weights_only=True)
     model.load_state_dict(weights)
     model.eval()
 
     #For clasifier:
     classifier = Transformer_Classifier().to(device)
     classifier_weights = torch.load(
-        "classifier_weights_1795448369.030159.pt",
+        "medium_classifier_weights_1795616789.7217689.pt",
         map_location=device,
         weights_only=True
     )
@@ -48,7 +49,7 @@ def main():
 
     df = pd.DataFrame({"sequence": sequences})
     df.to_csv(
-        f"results/sequences/generated_proteins_with_classifier.csv",
+        f"results/sequences/guidance_0_gen_seq_HU_with_classifier.csv",
         index=False
     )
 
